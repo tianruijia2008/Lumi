@@ -1,9 +1,10 @@
 name: security
 
-# 三道闸门，全部阻断式（任一失败 = red）：
-#   1. secrets  —— 密钥 / 凭据 / 个人信息
-#   2. hygiene  —— 构建产物 / 大文件 / 二进制
-#   3. docs     —— 文档漂移 / 死链 / 图规格 / 产物指纹
+# 四道闸门，全部阻断式（任一失败 = red）：
+#   1. secrets    —— 密钥 / 凭据 / 个人信息
+#   2. hygiene    —— 构建产物 / 大文件 / 二进制
+#   3. docs       —— 文档漂移 / 死链 / 图规格 / 交付回执与产物指纹
+#   4. invariants —— 代码注释里写明的契约（端口一致、扩展出口、entitlements、零依赖）
 #
 # 认证方式是零依赖：不装第三方 action、不联网下载扫描器，
 # 只用 Python 标准库跑 scripts/security-scan.py，本地同一条命令就能复现。
@@ -49,6 +50,17 @@ jobs:
           python-version: "3.12"
       - name: 检查构建产物、大文件与二进制
         run: python3 scripts/security-scan.py --phase hygiene
+
+  invariants:
+    name: 设计契约
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: 检查注释里写明的契约
+        run: python3 scripts/security-scan.py --phase invariants
 
   docs:
     name: 文档与图产物

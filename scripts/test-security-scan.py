@@ -14,6 +14,7 @@ security-scan:allow-file —— 下面 MUST_CATCH 里全是故意写的假密钥
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -58,6 +59,57 @@ MUST_STAY_QUIET: list[str] = [
 ]
 
 
+# ---------------------------------------------------------------- 契约自测
+# 这一组验证"注释里写明的契约"真的会在被破坏时失败。
+# 做法：把 invariants 阶段会读到的那些文件拷到临时目录，改一处，看是否报出来。
+
+INVARIANT_FIXTURES: list[tuple[str, str, str, str]] = [
+    # (相对路径, 旧文本, 新文本, 期望命中的规则)
+    (f"{''}{'EXTENSION_PLACEHOLDER'}/background.js", "47121", "47122", "invariant/port-mismatch"),
+    (f"{''}{'EXTENSION_PLACEHOLDER'}/background.js", "127.0.0.1:47121", "evil.example.net:47121",
+     "invariant/bridge-host"),
+    (f"{''}{'EXTENSION_PLACEHOLDER'}/content.js", "http://www.w3.org/1999/xhtml",
+     "http://tracker.example.net/beacon", "invariant/new-egress"),
+    ("build.sh", 'codesign --force --options runtime \\\n         --entitlements',
+     'codesign --force --options runtime --deep \\\n         --entitlements',
+     "invariant/codesign-deep"),
+    ("Lumi.entitlements", "<key>com.apple.security.app-sandbox</key>            <false/>",
+     "<key>com.apple.security.app-sandbox</key>            <true/>", "invariant/sandbox"),
+    ("Package.swift", "let package = Package(",
+     "let package = Package(dependencies: [.package(url: \"https://x/y\", from: \"1.0.0\")],", 
+     "invariant/dependency-added"),
+]
+
+MANIFEST_FIXTURE = (
+    "Extensions/Safari/WebExtension/manifest.json",
+    '"http://127.0.0.1/*"', '"*://*/*"', "invariant/wildcard-permission",
+)
+
+
+def invariant_rules(scanner, relative: str, old: str, new: str) -> set[str]:
+    """把仓库里 invariants 需要的那几个文件拷出来，改一处，跑一遍。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        wanted = ["Package.swift", "build.sh", "Lumi.entitlements",
+                  "Extensions/Safari/Extension.entitlements",
+                  "Sources/Lumi/PageBridge/PageBridge.swift"]
+        wanted += [str(p.relative_to(REPO))
+                   for p in (REPO / "Extensions/Safari/WebExtension").rglob("*") if p.is_file()]
+        for item in wanted:
+            source = REPO / item
+            if not source.is_file():
+                continue
+            target = root / item
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+        target = root / relative
+        text = target.read_text(encoding="utf-8")
+        if old not in text:
+            return {"__fixture-missing__"}
+        target.write_text(text.replace(old, new, 1), encoding="utf-8")
+        return {f.rule for f in scanner.scan_invariants(root)}
+
+
 def load_scanner():
     spec = importlib.util.spec_from_file_location("scanner", REPO / "scripts" / "security-scan.py")
     module = importlib.util.module_from_spec(spec)
@@ -99,14 +151,21 @@ def main() -> int:
         if expected not in actual:
             failures.append(f"漏报文件名规则：期望 {expected}，实际 {sorted(actual) or '无'}（{name}）")
 
-    total = len(MUST_CATCH) + len(MUST_STAY_QUIET) + 3
+    for relative, old, new, expected in INVARIANT_FIXTURES + [MANIFEST_FIXTURE]:
+        relative = relative.replace("EXTENSION_PLACEHOLDER", "Extensions/Safari/WebExtension")
+        actual = invariant_rules(scanner, relative, old, new)
+        if expected not in actual:
+            failures.append(f"契约漏报：{relative} 期望 {expected}，实际 {sorted(actual) or '无'}")
+
+    total = len(MUST_CATCH) + len(MUST_STAY_QUIET) + 3 + len(INVARIANT_FIXTURES) + 1
     if failures:
         print(f"✗ 守卫自测未通过（{len(failures)}/{total}）：")
         for failure in failures:
             print(f"  - {failure}")
         return 1
     print(f"✓ 守卫自测通过：{len(MUST_CATCH)} 种泄露全部命中，"
-          f"{len(MUST_STAY_QUIET) + 3} 类正常内容零误报")
+          f"{len(MUST_STAY_QUIET) + 3} 类正常内容零误报，"
+          f"{len(INVARIANT_FIXTURES) + 1} 条契约改坏都会被抓住")
     return 0
 
 

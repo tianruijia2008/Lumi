@@ -14,7 +14,9 @@ ARCHIFY=~/.pi/agent/skills/archify
 node $ARCHIFY/bin/archify.mjs deliver architecture docs/archify/lumi-architecture.json docs/lumi-architecture.html --quality showcase
 node $ARCHIFY/bin/archify.mjs deliver dataflow     docs/archify/lumi-dataflow.json     docs/lumi-dataflow.html     --quality showcase
 node $ARCHIFY/bin/archify.mjs visual-check docs/lumi-architecture.html --json
-python3 scripts/sanitize-receipts.py   # visual-check 会写绝对路径，提交前改成相对路径
+node $ARCHIFY/bin/archify.mjs deliver <type> docs/archify/lumi-<type>.json \
+     docs/lumi-<type>.html --quality showcase --json > docs/archify/lumi-<type>.deliver.json
+python3 scripts/sanitize-receipts.py   # 两类回执都会写绝对路径，提交前改成相对路径
 ```
 
 > 图是**静态 HTML**（内嵌 SVG + 运行时），不需要服务器、不需要联网。
@@ -206,9 +208,21 @@ python3 scripts/test-security-scan.py     # 验证守卫自己还有效
 
 | 阶段 | 拦什么 | 例子 |
 |---|---|---|
-| `secrets` | 15 类厂商密钥形状、私钥块、JWT、`key = "…"` 形式的高熵串；以及邮箱、团队 ID、`/Users/<name>` 绝对路径 | `sk-…`、`AIza…`、`gsk_…`、`…:fx`、`AKIA…` |
+| `secrets` | 15 类厂商密钥形状、私钥块、JWT、`key = "…"` 形式的高熵串；以及邮箱、团队 ID、`/Users/<name>` 绝对路径（**生成物也查**） | `sk-…`、`AIza…`、`gsk_…`、`…:fx`、`AKIA…` |
 | `hygiene` | `.build/`、`build/`、`*.app`、`_CodeSignature`、`.DS_Store`、编译中间产物、证书/描述文件/`.env`、>5MB 文件、Mach-O | — |
-| `docs` | `STRUCTURE.md` 相对链接是否有效、模块清单（文件数/行数）与实际代码是否一致、图规格是否合法 JSON、入库的 `visual-check` receipt 里的 sha256 是否等于仓库里那份 HTML | 改了代码没改文档，会在这里报 |
+| `docs` | `STRUCTURE.md` 相对链接、模块清单（文件数/行数）与代码是否一致、图规格与**交付回执**、入库 receipt 的 sha256 指纹 | 改了代码没改文档 / 改了规格没重新 deliver |
+| `invariants` | **只写在注释里的契约**：扩展端口 == `PageBridge.port`、扩展对外主机白名单、appex 必须 sandbox 且签名必须分别指定 entitlements、`build.sh` 不得用 `--deep`、`Package.swift` 不得出现外部依赖 | 见下表 |
+
+`invariants` 这一栏值得单独说：这些约定原本只存在于代码注释里（"必须与扩展里的 `LUMI_PORT` 一致"、"never `--deep`"、"Safari 拒绝未沙箱的扩展"），注释不会在 CI 里失败。现在它们会被逐条检查：
+
+| 契约 | 破了会怎样 | 检查方式 |
+|---|---|---|
+| 扩展端口 == `PageBridge.port` | 网页翻译静默失效（连不上又没人报错） | 分别解析 `PageBridge.swift` 与 `background.js` 再比对 |
+| 扩展出口主机白名单 | 浏览器扩展悄悄把页面内容发给新主机 | 扫描扩展 JS/manifest 里所有 `http(s)://` 主机，只允许 `127.0.0.1`、`translate.googleapis.com`、`www.w3.org`（各带原因），并禁止 `host_permissions` 里的通配符 |
+| appex sandbox + 分别签名 | Safari 拒绝加载扩展 / TCC 授权失效，且症状离原因很远 | 解析两份 entitlements 的 `app-sandbox`，并从 `build.sh` 里抽出**签名**命令（`--verify --deep` 是校验，不算）逐条检查 |
+| 零第三方依赖 | `STRUCTURE.md` 的"零第三方依赖"从已验证事实变成假话 | 扫 `Package.swift` 有没有 `.package(` |
+
+**图的完整性链条**：`规格 JSON → 交付回执 → HTML → 浏览器证据` 四者用 sha256 串起来。`deliver --json` 的输出存在 `docs/archify/*.deliver.json`（含规格 sha256 与产物 sha256），`visual-check` 的输出存在 `docs/*.visual-check.json`（含产物 sha256 与视口测量）。守卫逐个验算，所以"改了规格忘了重新 deliver"和"手改了生成的 HTML"都会在 CI 里断——这两件事第 7 节明令禁止，现在有东西在管了。
 
 **本地钩子**：`.githooks/pre-commit` 调 `--staged`，只拦这次要提交的内容（文档漂移留给 CI，不打断本地迭代）。钩子用 `core.hooksPath` 指过来，所以要每个克隆各启用一次：
 
@@ -220,5 +234,12 @@ git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 **CI**（`.github/workflows/security.yml`）在 push / PR / 手动触发时跑三个平行 job，任一失败即红。它跑在 **GitHub 云端的 Linux 临时虚拟机**（`ubuntu-latest`）上——不是你的 Mac，你不需要装 Linux，也不需要装任何东西；那台机器把你的代码 clone 过去跑一遍 Python 脚本就销毁。选 Linux 是因为计费系数最低（Linux 1×，macOS 10×），而编译本来也做不了（见下）。刻意**不装第三方 action、不联网下载扫描器**，只用 Python 标准库，所以你本地能 100% 复现同一条命令。也刻意**不编译 App**：项目要求 macOS 26，而 GitHub 的 `macos` runner 还没到那个版本，`swift build` 只会红得没信息量——构建请在本地 `./build.sh`。
 
 **守卫自己也要被验证**：`scripts/test-security-scan.py` 在临时仓库里塞 17 种真形状的假密钥，断言全部命中；再塞 14 类正常内容（文档例句、`com.tianruijia.` bundle id、sha256 常量、noreply 邮箱…），断言零误报。CI 里跑它，所以“永远绿”的假扫描器活不过下一次提交。
+
+**几个刻意没做的事**（免得以后反复讨论）：
+
+- **不钉 `ubuntu-latest` 到 `ubuntu-24.04`**：守卫只用 Python 标准库 + bash，跟发行版版本无关；钉死换来一个需要人工维护的版本号，还得再写一条升级提醒。那条"将迁到 Ubuntu 26"的公告是信息，不是问题。
+- **不加 dependabot**：整个仓库只有 2 个 action（`checkout` / `setup-python`）。dependabot 每次升级开一个 PR + 一次 CI，换来的是一条本来一分钟能改完的一行改动——对 2 个 action 的仓库是净负担。升级手法记在这里就够：`gh api repos/actions/checkout/releases/latest --jq .tag_name`，然后改 YAML 里的 major tag（major tag 会自动跟随 patch）。
+- **不自研之外的东西、也不引入 gitleaks**：gitleaks 规则更多，但要多一个二进制下载与版本跟踪，而且它对**这个项目**特有的东西（端口一致性、扩展出口、entitlements）一无所知。自研部分只用标准库，好处是本地、CI、任何机器上跑的完全一致，并且可以被自测覆盖。
+- **不上 macOS runner**：贵 10×，而且编不了（平台要求 macOS 26）。编译留在本机 `./build.sh`。
 
 **命中之后怎么办**：不要只删文件——已经 commit 过的东西还留在 reflog 和远端对象里。正确顺序是①撤销那笔改动 ②去厂商后台**轮换/作废**那把 key ③才考虑清理历史。文档里的示例请写成 `sk-YOUR_KEY` 这类明确占位形式，扫描器会放过它们（占位词、重复字符、`xxxx` 都认）。个别文件天生必须包含假密钥（比如守卫自测），可以在文件前几行写 `security-scan:allow-file` 声明跳过内容扫描；这是个显眼、可评审的单行标记，而且跳过时 CI 日志会点名。

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "docs/archify/lumi-dataflow.json",
+  "output": "docs/lumi-dataflow.html",
+  "specification": {
+    "sha256": "c3a0af6c4b8de7871fc5d57bb572734d808e45c4919640c688cd52a90bc7eb38",
+    "bytes": 7121
+  },
+  "artifact": {
+    "sha256": "2147e1592611d77fa30f35dc09c1e5e3bd633620894eb54d4e1b6a5a83ef3f96",
+    "bytes": 819541
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

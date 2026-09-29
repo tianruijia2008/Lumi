@@ -22,6 +22,7 @@ import hashlib
 import json
 import math
 import os
+import plistlib
 import re
 import shutil
 import subprocess
@@ -368,6 +369,12 @@ CENSUS_TOTAL = re.compile(r"^\|\s*\*\*合计\*\*\s*\|\s*\*\*(\d+)\*\*\s*\|\s*\*\
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 
 
+def spec_files(root: Path) -> list[Path]:
+    """docs/archify 下的**规格**（排除 *.deliver.json 交付回执）。"""
+    return sorted(p for p in (root / "docs" / "archify").glob("*.json")
+                  if not p.name.endswith(".deliver.json"))
+
+
 def scan_docs(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     structure = root / "STRUCTURE.md"
@@ -429,7 +436,7 @@ def scan_docs(root: Path) -> list[Finding]:
                                     f"新模块 {module} 没写进模块清单"))
 
     # 3) 两张图的规格必须是合法 JSON，且产物存在（STRUCTURE.md 顶部就承诺了）
-    for spec in sorted((root / "docs" / "archify").glob("*.json")):
+    for spec in spec_files(root):
         try:
             data = json.loads(spec.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -443,7 +450,36 @@ def scan_docs(root: Path) -> list[Finding]:
             findings.append(Finding(str(spec.relative_to(root)), 0, "docs/missing-artifact",
                                     f"缺少对应的 HTML：{artifact.name}"))
 
-    # 4) 图产物指纹：receipt 里的 sha256 必须等于仓库里那份 HTML，
+    # 4) 交付回执：规格 sha256 与产物 sha256 都必须对得上。
+    #    这条把 规格 -> HTML -> 浏览器证据 连成一条链：
+    #    改了规格没重新 deliver、或改了 HTML 没重新 deliver，都会在这里断。
+    for spec in spec_files(root):
+        receipt = spec.with_name(spec.name.replace(".json", ".deliver.json"))
+        if not receipt.is_file():
+            findings.append(Finding(f"docs/archify/{receipt.name}", 0, "docs/missing-receipt",
+                                    f"缺少 {spec.name} 的交付回执（重新跑一次 deliver --json 并存入）"))
+            continue
+        try:
+            data = json.loads(receipt.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            findings.append(Finding(str(receipt.relative_to(root)), 0, "docs/invalid-receipt",
+                                    str(exc)[:120]))
+            continue
+        spec_sha = hashlib.sha256(spec.read_bytes()).hexdigest()
+        if data.get("specification", {}).get("sha256") != spec_sha:
+            findings.append(Finding(str(receipt.relative_to(root)), 0, "docs/stale-receipt",
+                                    f"{spec.name} 在交付之后被改过，需要重新 deliver"))
+        artifact = root / "docs" / f"lumi-{data.get('type', 'x')}.html"
+        if artifact.is_file() and data.get("artifact", {}).get("sha256") \
+                and hashlib.sha256(artifact.read_bytes()).hexdigest() != data["artifact"]["sha256"]:
+            findings.append(Finding(str(receipt.relative_to(root)), 0, "docs/stale-receipt",
+                                    f"{artifact.name} 与交付回执不符（HTML 被手改过）"))
+        validation = data.get("validation", {})
+        if validation.get("compositionStatus") != "pass" or validation.get("errors"):
+            findings.append(Finding(str(receipt.relative_to(root)), 0, "docs/failed-receipt",
+                                    f"交付回执不是 showcase 通过：{validation}"))
+
+    # 5) 图产物指纹：receipt 里的 sha256 必须等于仓库里那份 HTML，
     #    这样“手改生成的 HTML”和“重新 deliver 后忘了重跑 visual-check”都会被发现。
     for receipt in sorted((root / "docs").glob("*.visual-check.json")):
         relative = str(receipt.relative_to(root))
@@ -468,12 +504,195 @@ def scan_docs(root: Path) -> list[Finding]:
     return findings
 
 
+# ------------------------------------------------------- phase: invariants
+
+# 这些是"目前只写在注释里"的契约。注释不会在 CI 里失败，所以把它们变成检查：
+# 每一条都对应代码里一句 hard-won 的说明，改坏了会以真实故障的形式出现。
+EXTENSION_DIR = "Extensions/Safari/WebExtension"
+
+# 扩展允许联系的主机。多一个都必须是有意识的评审决定，而不是"没人注意"：
+#   127.0.0.1                 本机 PageBridge（主路径，见 PageBridge.swift）
+#   translate.googleapis.com  Lumi 没在运行时的 Google 兜底翻译
+#                             （会把段落发给 Google——既定设计，但必须写在明面上）
+#   www.w3.org                XHTML 命名空间字符串，不是网络请求
+ALLOWED_EXTENSION_HOSTS = {
+    "127.0.0.1": "本机 PageBridge（:47121）",
+    "translate.googleapis.com": "Lumi 未运行时的 Google 兜底翻译（会把段落发给 Google）",
+    "www.w3.org": "XHTML 命名空间字符串，不是网络请求",
+}
+HOST_IN_URL = re.compile(r"https?://([A-Za-z0-9._\-]+)")
+WILDCARD_PERMISSION = re.compile(r"\*://|^\*$|<all_urls>")
+
+
+def read_repo_file(root: Path, relative: str) -> str | None:
+    path = root / relative
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def _codesign_invocations(build_text: str) -> list[tuple[int, str]]:
+    """把 build.sh 里每一条 codesign 命令捞出来，合并续行、忽略注释行。
+
+    不能直接在全文里 grep "--deep"：build.sh 本来就有一条
+    `codesign --verify --deep --strict`（校验嵌套签名，完全正常）。
+    要管的是**签名**那两条。
+    """
+    invocations: list[tuple[int, str]] = []
+    start = 0
+    parts: list[str] = []
+    for number, line in enumerate(build_text.splitlines(), start=1):
+        if line.lstrip().startswith("#"):
+            continue
+        if not parts and not line.lstrip().startswith("codesign"):
+            continue
+        if not parts:
+            start = number
+        continued = line.rstrip().endswith("\\")
+        parts.append(line.rstrip().rstrip("\\").strip())
+        if not continued:
+            invocations.append((start, " ".join(parts)))
+            parts = []
+    if parts:
+        invocations.append((start, " ".join(parts)))
+    return invocations
+
+
+def _is_verification(command: str) -> bool:
+    return "--verify" in command
+
+
+def _check_port_agreement(root: Path, findings: list[Finding]) -> None:
+    """PageBridge.swift 的注释写着"必须与扩展里的 LUMI_PORT 一致"——没有东西在检查它。"""
+    swift = read_repo_file(root, "Sources/Lumi/PageBridge/PageBridge.swift")
+    js = read_repo_file(root, f"{EXTENSION_DIR}/background.js")
+    if swift is None or js is None:
+        findings.append(Finding("Sources/Lumi/PageBridge/PageBridge.swift", 0, "invariant/unreadable",
+                                "读不到 PageBridge.swift 或 background.js，端口一致性无法验证"))
+        return
+    swift_port = re.search(r"static let port\s*:\s*UInt16\s*=\s*([0-9_]+)", swift)
+    js_endpoint = re.search(r"LUMI\s*=\s*['\"](https?://[^'\"]+)['\"]", js)
+    if not swift_port or not js_endpoint:
+        findings.append(Finding("Sources/Lumi/PageBridge/PageBridge.swift", 0,
+                                "invariant/port-unparsable",
+                                "没能从代码里解析出端口声明，请更新这条规则而不是删掉它"))
+        return
+    expected = int(swift_port.group(1).replace("_", ""))
+    host, _, port = js_endpoint.group(1).partition("://")
+    actual_host, _, actual_port = port.partition(":")
+    if host != "http":
+        findings.append(Finding(f"{EXTENSION_DIR}/background.js", 0, "invariant/bridge-scheme",
+                                f"扩展访问桥用的是 {host}，回环桥只可能是 http"))
+    if actual_host not in ("127.0.0.1", "localhost", "[::1]"):
+        findings.append(Finding(f"{EXTENSION_DIR}/background.js", 0, "invariant/bridge-host",
+                                f"扩展指向的主机是 {actual_host}，桥必须只在回环上"))
+    if actual_port != str(expected):
+        findings.append(Finding(f"{EXTENSION_DIR}/background.js", 0, "invariant/port-mismatch",
+                                f"扩展用 {actual_port}，PageBridge 用 {expected}——"
+                                "两者不一致时网页翻译会静默失效"))
+
+
+def _check_extension_egress(root: Path, findings: list[Finding]) -> None:
+    """扩展的网络出口 = 用户的隐私边界，新主机必须是一次有意识的改动。"""
+    extension = root / EXTENSION_DIR
+    if not extension.is_dir():
+        findings.append(Finding(EXTENSION_DIR, 0, "invariant/unreadable", "找不到扩展目录"))
+        return
+    hosts: dict[str, str] = {}
+    for path in sorted(extension.rglob("*")):
+        if not path.is_file() or path.suffix not in {".js", ".json", ".html"}:
+            continue
+        relative = str(path.relative_to(root))
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for match in HOST_IN_URL.finditer(text):
+            hosts.setdefault(match.group(1), relative)
+        if path.name == "manifest.json":
+            try:
+                manifest = json.loads(text)
+            except json.JSONDecodeError as exc:
+                findings.append(Finding(relative, 0, "invariant/manifest", str(exc)[:120]))
+                continue
+            # content_scripts 的 <all_urls> 是机制本身（要在页面里注入），
+            # 但 host_permissions 里的通配符等于把出口开给整个互联网。
+            for permission in manifest.get("host_permissions", []):
+                if WILDCARD_PERMISSION.search(permission):
+                    findings.append(Finding(relative, 0, "invariant/wildcard-permission",
+                                            f"host_permissions 含通配：{permission}"))
+    for host, where in sorted(hosts.items()):
+        if host not in ALLOWED_EXTENSION_HOSTS:
+            findings.append(Finding(where, 0, "invariant/new-egress",
+                                    f"扩展出现了新的对外主机：{host}"
+                                    "（确认过就加进 ALLOWED_EXTENSION_HOSTS 并写明原因）"))
+
+
+def _check_entitlements_and_signing(root: Path, findings: list[Finding]) -> None:
+    """build.sh 的注释解释了为什么不能 --deep、appex 为什么必须 sandbox。
+    这些一旦被"简化"掉，表现是 Safari 拒绝加载扩展 / TCC 授权失效，离原因很远。"""
+    app_entitlements = root / "Lumi.entitlements"
+    extension_entitlements = root / "Extensions/Safari/Extension.entitlements"
+    for path, expected_sandbox, why in (
+        (app_entitlements, False, "App 需要 Accessibility / 屏幕录制，必须关沙箱"),
+        (extension_entitlements, True, "Safari 拒绝加载未沙箱的扩展"),
+    ):
+        if not path.is_file():
+            findings.append(Finding(str(path.relative_to(root)), 0, "invariant/missing", "文件不存在"))
+            continue
+        try:
+            data = plistlib.loads(path.read_bytes())
+        except Exception as exc:
+            findings.append(Finding(str(path.relative_to(root)), 0, "invariant/entitlements",
+                                    f"不是合法 plist：{exc}"))
+            continue
+        sandbox = data.get("com.apple.security.app-sandbox")
+        if sandbox is not expected_sandbox:
+            findings.append(Finding(str(path.relative_to(root)), 0, "invariant/sandbox",
+                                    f"app-sandbox={sandbox}，应为 {expected_sandbox}（{why}）"))
+    build = read_repo_file(root, "build.sh")
+    if build is None:
+        findings.append(Finding("build.sh", 0, "invariant/unreadable", "找不到 build.sh"))
+        return
+    for lineno, command in _codesign_invocations(build):
+        if _is_verification(command):
+            continue                      # `codesign --verify --deep` 是校验，无害
+        if "--entitlements" not in command:
+            findings.append(Finding("build.sh", lineno, "invariant/codesign-entitlements",
+                                    f"签名没有显式指定 entitlements：{command[:70]}…"))
+        if "--deep" in command:
+            findings.append(Finding("build.sh", lineno, "invariant/codesign-deep",
+                                    "--deep 会把 App 的 entitlements 盖到 appex 上，"
+                                    "Safari 就不认这个扩展了"))
+        if "APPEX" in command and "Extension.entitlements" not in command:
+            findings.append(Finding("build.sh", lineno, "invariant/appex-entitlements",
+                                    "appex 必须用 Extension.entitlements（sandbox=true），"
+                                    "不能用 App 那份"))
+
+
+def _check_no_dependencies(root: Path, findings: list[Finding]) -> None:
+    """STRUCTURE.md 把"零第三方依赖"写成已验证事实，那就让它在 CI 里成立。"""
+    package = read_repo_file(root, "Package.swift")
+    if package is None:
+        findings.append(Finding("Package.swift", 0, "invariant/unreadable", "找不到 Package.swift"))
+        return
+    if re.search(r"\.package\s*\(", package):
+        findings.append(Finding("Package.swift", 0, "invariant/dependency-added",
+                                "出现了外部依赖：请同时更新本规则与 STRUCTURE.md 的"
+                                "『零第三方依赖』声明（那是个已验证事实，不能悄悄失效）"))
+
+
+def scan_invariants(root: Path) -> list[Finding]:
+    findings: list[Finding] = []
+    _check_port_agreement(root, findings)
+    _check_extension_egress(root, findings)
+    _check_entitlements_and_signing(root, findings)
+    _check_no_dependencies(root, findings)
+    return findings
+
+
 # ---------------------------------------------------------------- 入口
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Lumi 仓库守卫")
-    parser.add_argument("--phase", choices=["all", "secrets", "hygiene", "docs"], default="all")
+    parser.add_argument("--phase", choices=["all", "secrets", "hygiene", "docs", "invariants"],
+                        default="all")
     parser.add_argument("--staged", action="store_true", help="只扫索引里已 staged 的内容")
     parser.add_argument("--root", default=None, help="仓库根目录（默认自动探测）")
     args = parser.parse_args(argv)
@@ -508,9 +727,16 @@ def main(argv: list[str] | None = None) -> int:
         print("✗ 一个文件都没扫到，拒绝报通过", file=sys.stderr)
         return 2
 
-    phases = ["secrets", "hygiene", "docs"] if args.phase == "all" else [args.phase]
-    if "docs" in phases and args.staged:
-        phases.remove("docs")             # 文档漂移只在全量扫描时检查
+    phases = (["secrets", "hygiene", "docs", "invariants"] if args.phase == "all"
+              else [args.phase])
+    if args.staged:
+        # invariants 是全仓库性质的设计约束，留给 CI；
+        # docs 只在这次真的碰了 docs/ 时才跑——代价是几毫秒，换来的是
+        # "改了规格忘了重新 deliver"在提交那一刻就被拦住，而不是等 CI 报红。
+        if "invariants" in phases:
+            phases.remove("invariants")
+        if "docs" in phases and not any(f.startswith("docs/") for f in files):
+            phases.remove("docs")
 
     print(f"Lumi repo guard · 仓库 {root}")
     print(f"扫描范围：{where}" + ("（索引内容）" if args.staged else ""))
@@ -521,6 +747,7 @@ def main(argv: list[str] | None = None) -> int:
                    "确属示例的占位串请写成 <YOUR_KEY> 之类。",
         "hygiene": "这些文件应由 .gitignore 排除（构建产物可用 ./build.sh 重新生成）。",
         "docs": "STRUCTURE.md 与真实代码不一致，请同步更新文档（或修代码）。",
+        "invariants": "代码里注释写明的契约被改动了——按提示修复，或有意更新规则与文档。",
     }
     if "secrets" in phases:
         allowed: list[str] = []
@@ -532,8 +759,11 @@ def main(argv: list[str] | None = None) -> int:
         ok &= report("phase: hygiene — 构建产物 / 大文件 / 二进制",
                      scan_hygiene(root, files), hints["hygiene"])
     if "docs" in phases:
-        ok &= report("phase: docs — 文档漂移 / 死链 / 图规格",
+        ok &= report("phase: docs — 文档漂移 / 死链 / 图规格与交付回执",
                      scan_docs(root), hints["docs"])
+    if "invariants" in phases:
+        ok &= report("phase: invariants — 注释里写明的契约（端口 / 出口 / 签名 / 依赖）",
+                     scan_invariants(root), hints["invariants"])
 
     print("\n" + ("✓ 全部通过" if ok else "✗ 未通过，详见上面各组"))
     return 0 if ok else 1

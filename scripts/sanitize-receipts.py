@@ -42,15 +42,17 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve() if args.root else ROOT
+    # 两类回执都会写绝对路径：浏览器证据（visual-check）与交付回执（deliver）。
     receipts = sorted((root / "docs").glob("*.visual-check.json"))
+    receipts += sorted((root / "docs" / "archify").glob("*.deliver.json"))
     if not receipts:
-        print("没有找到 docs/*.visual-check.json，无事可做")
+        print("没有找到 receipt，无事可做")
         return 0
 
     changed = [receipt for receipt in receipts if sanitize(receipt, args.check)]
     verb = "需要改" if args.check else "已改写"
     if not changed:
-        print(f"✓ {len(receipts)} 个 receipt 都已是仓库相对路径")
+        print(f"✓ {len(receipts)} 个 receipt（visual-check + deliver）都已是仓库相对路径")
         return 0
     for receipt in changed:
         print(f"{verb}：{receipt.relative_to(root)}")
