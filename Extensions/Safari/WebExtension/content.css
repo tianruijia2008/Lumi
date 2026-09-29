@@ -1,0 +1,183 @@
+/* Translations take the page's own type — size, face, line height — and differ
+   from the source only in ink and in one thin edge. A translation that looks
+   like a widget pasted onto the page is the thing this is replacing.
+
+   Colour and motion are Lumi's: the system accent colour (Chrome.activeStroke
+   is accent at 55%), and the panel's springs from Motion.swift, sampled into
+   linear() curves. */
+
+lumi-tr {
+  --lumi-accent: #007aff;
+  --lumi-pane: color-mix(in srgb, var(--lumi-accent) 55%, transparent);
+  /* Motion.pop — spring(response: 0.38, dampingFraction: 0.74) */
+  --lumi-pop: linear(0, .0361, .1246, .2413, .3685, .4941, .6101, .712, .7979, .8675, .9218, .9626,
+    .9916, 1.0112, 1.0231, 1.0294, 1.0315, 1.0307, 1.0282, 1.0246, 1.0206, 1.0166, 1.0129, 1.0096,
+    1.0068, 1.0045, 1.0027, 1.0014, 1);
+  display: block;
+  margin: 0.3em 0 0.15em;
+  padding: 0;
+  font: inherit;
+  font-style: normal;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: inherit;
+  white-space: normal;
+  color: inherit;
+  color: color-mix(in srgb, currentColor 80%, transparent);
+  user-select: text;
+}
+@supports (color: AccentColor) {
+  lumi-tr { --lumi-accent: AccentColor; }
+}
+
+lumi-tr[data-inline] {
+  display: inline;
+  margin: 0 0 0 0.45em;
+}
+
+/* Arrival: the text resolves as if through glass — out of a slight blur, up a
+   few pixels, on the panel's pop spring. Lumi's result body swaps in the same
+   way (AnyTransition.bodySwap: opacity plus a 5pt rise). */
+lumi-tr[data-state="done"] {
+  animation: lumi-arrive 0.49s var(--lumi-pop) both;
+}
+lumi-tr[data-inline][data-state="done"] {
+  animation-name: lumi-arrive-inline;
+}
+@keyframes lumi-arrive {
+  from { opacity: 0; filter: blur(3px); transform: translateY(4px); }
+  to { opacity: 1; filter: blur(0); transform: none; }
+}
+@keyframes lumi-arrive-inline {
+  from { opacity: 0; filter: blur(3px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
+/* Pane — the default. The edge of the glass the text came through, which is
+   Lumi's icon: A goes in one side, 文 comes out the other. */
+html:not([data-lumi-style]) lumi-tr:not([data-inline]),
+html[data-lumi-style="pane"] lumi-tr:not([data-inline]) {
+  border-inline-start: 2px solid var(--lumi-pane);
+  padding-inline-start: 0.62em;
+}
+
+/* Frosted — for reading in the language you are learning. The translation is
+   there, but you have to reach for it. */
+html[data-lumi-style="frost"] lumi-tr[data-state="done"] {
+  animation: none;
+  filter: blur(4.5px);
+  transition: filter 0.31s ease;
+  cursor: help;
+}
+html[data-lumi-style="frost"] lumi-tr[data-state="done"]:hover,
+html[data-lumi-style="frost"] .lumi-host:focus-within > lumi-tr {
+  filter: none;
+}
+
+/* Translation only. Text nodes cannot be hidden one by one without wrapping
+   them, so the host's font size goes to zero and the translation restores it
+   — with every em-based measure read in pixels beforehand (see pinMetrics). */
+html[data-lumi-style="replace"] .lumi-host {
+  font-size: 0 !important;
+  margin-top: var(--lumi-mt) !important;
+  margin-bottom: var(--lumi-mb) !important;
+  padding-top: var(--lumi-pt) !important;
+  padding-bottom: var(--lumi-pb) !important;
+}
+html[data-lumi-style="replace"] .lumi-host::marker {
+  font-size: var(--lumi-fs);
+}
+html[data-lumi-style="replace"] .lumi-host > :not(lumi-tr) {
+  display: none !important;
+}
+/* Inline, so a list item's bullet stays on the translation's first line
+   rather than on an empty line of zero-size source above it. */
+html[data-lumi-style="replace"] .lumi-host > lumi-tr {
+  display: inline !important;
+  font-size: var(--lumi-fs) !important;
+  line-height: var(--lumi-lh) !important;
+  margin: 0 !important;
+  color: inherit;
+}
+
+/* Waiting — a placeholder the height the translation will probably be, so
+   the page moves once, not twice. It breathes at the service rail's status
+   dot rhythm (0.65s each way) rather than sweeping: one idiom for "working"
+   across the app. */
+lumi-tr[data-state="pending"]::before {
+  content: "";
+  display: block;
+  height: calc(var(--lumi-lines, 1) * 1.1em);
+  max-width: 34em;
+  border-radius: 0.3em;
+  background: repeating-linear-gradient(
+    to bottom,
+    color-mix(in srgb, currentColor 12%, transparent) 0 0.72em,
+    transparent 0.72em 1.1em
+  );
+  animation: lumi-breathe 0.65s ease-in-out infinite alternate;
+}
+lumi-tr[data-inline][data-state="pending"]::before {
+  display: inline-block;
+  width: 3em;
+  height: 0.72em;
+  vertical-align: middle;
+}
+@keyframes lumi-breathe {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+
+/* One paragraph that failed where its neighbours did not. Set in the
+   chrome's type — 11px rounded medium, a capsule with a hairline — so it
+   reads as a control whatever the paragraph around it looks like. A failure
+   of the whole page is reported once, in the dock, and never gets here. */
+lumi-tr[data-state="error"] {
+  border-inline-start-color: transparent !important;
+}
+lumi-tr .lumi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 3px 0 8px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+  font: 500 11px/1 ui-rounded, -apple-system, "SF Pro Rounded", "PingFang SC", sans-serif;
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  vertical-align: middle;
+  cursor: help;
+}
+lumi-tr .lumi-chip > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ff9500;
+}
+lumi-tr .lumi-chip > button {
+  all: unset;
+  height: 16px;
+  padding: 0 7px;
+  border-radius: 8px;
+  line-height: 16px;
+  color: var(--lumi-accent);
+  background: color-mix(in srgb, var(--lumi-accent) 14%, transparent);
+  cursor: default;
+}
+lumi-tr .lumi-chip > button:hover {
+  background: color-mix(in srgb, var(--lumi-accent) 22%, transparent);
+}
+lumi-tr .lumi-chip > button:focus-visible {
+  outline: 2px solid var(--lumi-accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  lumi-tr[data-state="done"] { animation: none; }
+  lumi-tr[data-state="pending"]::before { animation: none; }
+  html[data-lumi-style="frost"] lumi-tr[data-state="done"] { transition: none; }
+}
+
+@media print {
+  lumi-dock { display: none !important; }
+}

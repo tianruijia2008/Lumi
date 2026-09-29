@@ -1,0 +1,4 @@
+{
+  "name": { "message": "Lumi 网页翻译" },
+  "description": { "message": "在原文下方逐段显示译文。用 Lumi 里配置的大模型或本机翻译，未运行 Lumi 时用 Google。" }
+}

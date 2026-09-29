@@ -1,0 +1,82 @@
+name: security
+
+# 三道闸门，全部阻断式（任一失败 = red）：
+#   1. secrets  —— 密钥 / 凭据 / 个人信息
+#   2. hygiene  —— 构建产物 / 大文件 / 二进制
+#   3. docs     —— 文档漂移 / 死链 / 图规格 / 产物指纹
+#
+# 认证方式是零依赖：不装第三方 action、不联网下载扫描器，
+# 只用 Python 标准库跑 scripts/security-scan.py，本地同一条命令就能复现。
+#
+# 这里刻意不编译 App：项目要求 macOS 26 + Swift 6，而 GitHub 的 macos runner
+# 目前还没到 macOS 26，swift build 会因平台要求直接失败，红得没有信息量。
+# 构建请在本地跑 ./build.sh（见 STRUCTURE.md 第 1 节）。
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    name: 密钥 / 个人信息
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 扫描密钥、凭据与个人信息
+        run: python3 scripts/security-scan.py --phase secrets
+      - name: 验证守卫自身有效（自测）
+        run: python3 scripts/test-security-scan.py
+
+  hygiene:
+    name: 仓库卫生
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 检查构建产物、大文件与二进制
+        run: python3 scripts/security-scan.py --phase hygiene
+
+  docs:
+    name: 文档与图产物
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 检查文档漂移、死链与图产物指纹
+        run: python3 scripts/security-scan.py --phase docs
+      - name: 检查脚本语法
+        run: |
+          bash -n build.sh
+          bash -n run.sh
+          sh -n .githooks/pre-commit
+      - name: 检查 plist / entitlements 是合法 XML
+        run: |
+          python3 - <<'PY'
+          import plistlib, pathlib, sys
+          bad = []
+          for path in ["Resources/Info.plist", "Extensions/Safari/Info.plist",
+                       "Lumi.entitlements", "Extensions/Safari/Extension.entitlements"]:
+              try:
+                  plistlib.loads(pathlib.Path(path).read_bytes())
+                  print(f"ok   {path}")
+              except Exception as exc:
+                  bad.append(f"fail {path}: {exc}")
+          print("\n".join(bad))
+          sys.exit(1 if bad else 0)
+          PY

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Lumi 提交前守卫。
+#
+# 目的：把密钥 / 个人信息 / 构建产物挡在 commit 之前，而不是等 CI 报红——
+# 已经提交过的密钥即使回滚也还留在 reflog 里，轮换代价远大于早拦一步。
+#
+# 和 CI 用同一个脚本（scripts/security-scan.py），所以本地"过了"CI 就不会翻脸。
+# 只检查这次 staged 的内容（docs 漂移交给 CI，不打断本地迭代节奏）。
+#
+# 装到仓库里（已由 ./scripts/install-hooks.sh 或 git config 设置）：
+#     git config core.hooksPath .githooks
+# 临时绕过（确实需要时）：git commit --no-verify
+set -e
+
+root="$(git rev-parse --show-toplevel)"
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "pre-commit: 没找到 python3，本地密钥检查已跳过（CI 仍会检查）。" >&2
+    exit 0
+fi
+
+exec python3 "$root/scripts/security-scan.py" --staged

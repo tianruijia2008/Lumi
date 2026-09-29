@@ -1,0 +1,4 @@
+{
+  "name": { "message": "Lumi Page Translate" },
+  "description": { "message": "Shows a translation under each paragraph, using the model configured in Lumi, or Google when Lumi is not running." }
+}
