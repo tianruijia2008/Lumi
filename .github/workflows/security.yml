@@ -30,8 +30,8 @@ jobs:
     name: 密钥 / 个人信息
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: 扫描密钥、凭据与个人信息
@@ -43,8 +43,8 @@ jobs:
     name: 仓库卫生
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: 检查构建产物、大文件与二进制
@@ -54,8 +54,8 @@ jobs:
     name: 文档与图产物
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: 检查文档漂移、死链与图产物指纹
