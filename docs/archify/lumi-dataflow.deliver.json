@@ -6,12 +6,12 @@
   "input": "docs/archify/lumi-dataflow.json",
   "output": "docs/lumi-dataflow.html",
   "specification": {
-    "sha256": "c3a0af6c4b8de7871fc5d57bb572734d808e45c4919640c688cd52a90bc7eb38",
-    "bytes": 7121
+    "sha256": "4d29dafe357ac069d03aabe6d9e1a843734e6c8bceee9f91cdfe2ad88f965a0c",
+    "bytes": 7236
   },
   "artifact": {
-    "sha256": "2147e1592611d77fa30f35dc09c1e5e3bd633620894eb54d4e1b6a5a83ef3f96",
-    "bytes": 819541
+    "sha256": "1d4d46115d04badd8239613e0e092d83dd5cde0f259cddd3b15959cf138d1029",
+    "bytes": 819655
   },
   "validation": {
     "checksPassed": 9,

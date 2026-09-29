@@ -7,8 +7,8 @@
   "visualReview": "pending",
   "artifact": {
     "path": "docs/lumi-architecture.html",
-    "sha256": "64e0f6e3845721d9789123957b4f3b097dd7c9c582dcf20c0be5fa5774be3438",
-    "bytes": 814782
+    "sha256": "1f6ed9b8d122ae45a0bf0031062b2224c919160b44aadf33173c8f754d0840dc",
+    "bytes": 814768
   },
   "state": {
     "detail": "read",
@@ -95,8 +95,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1139,
-        "diagramWidth": 1109,
+        "readerWidth": 1138,
+        "diagramWidth": 1108,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 9,
         "minimumProjectedNodeText": "选中文本 / 区域",
@@ -225,8 +225,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1139,
-        "diagramWidth": 1109,
+        "readerWidth": 1138,
+        "diagramWidth": 1108,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 9,
         "minimumProjectedNodeText": "选中文本 / 区域",
@@ -354,8 +354,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1139,
-        "diagramWidth": 1109,
+        "readerWidth": 1138,
+        "diagramWidth": 1108,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 9,
         "minimumProjectedNodeText": "选中文本 / 区域",

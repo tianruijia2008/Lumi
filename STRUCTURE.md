@@ -36,7 +36,7 @@ python3 scripts/sanitize-receipts.py   # 两类回执都会写绝对路径，提
 | 规模 | 69 个 Swift 文件 / 16,240 行 **[已验证：文件统计]** |
 | 打包 | `build.sh`：SwiftPM 编译 → 手工组装 `.app` → 本机免费个人团队证书签名（身份**不写进源码**，见第 8 节）；Safari appex 用 `swiftc` 单独编译后 `lsregister` 注册 **[已验证]** |
 | 启动 | 必须 `./run.sh`（内部走 `open`）或访达启动；直接执行 bundle 内二进制会把 TCC 权限记到终端头上 **[README + `run.sh` 注释]** |
-| 版本控制 | git 仓库，分支 `main`；密钥/卫生/文档三道闸门 + CI，见第 8 节 **[已验证]** |
+| 版本控制 | git 仓库，分支 `main`；密钥 / 卫生 / 文档 / 设计契约四道闸门 + CI，见第 8 节 **[已验证]** |
 | 额外产物 | Safari Web Extension（JS）、`Tools/IconForge`（CoreGraphics 画图标 → `.icns`） |
 
 ---
@@ -51,8 +51,9 @@ Lumi/
 ├── .gitignore                     # 构建产物、本机私有配置不入库
 ├── .lumi-identity                 # 签名身份（本地、不入库；build.sh 读它）
 ├── .githooks/pre-commit           # 提交前守卫（core.hooksPath 指向这里）
-├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档三道闸门
+├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档 / 契约四道闸门
 ├── README.md                      # 设计取向与自测入口（比本文更细的行为说明）
+├── AGENTS.md                      # 给 AI 代理的约定（红线 / 检查 / 改图流程）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
 │   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs 三阶段）
@@ -139,7 +140,7 @@ Lumi/
 
 | 类型 | 谁在用 | 备注 |
 |---|---|---|
-| `AppSettings.shared` | **20 个文件**引用 | 全项目耦合最广的类型：语言对、各服务开关/模型、面板宽度、外观 |
+| `AppSettings.shared` | **19 个文件**依赖（不含定义它的那个文件） | 全项目耦合最广的类型：语言对、各服务开关/模型、面板宽度、外观 |
 | `Keychain` | 仅 `GeminiProvider`、`OpenAICompatibleProvider`、`ClaudeProvider`、`DeepLProvider` | 账号名 `service.<ServiceKind.rawValue>.key` |
 | `Timeout` | 取词（`withBlockingTimeout`）、HTTP 分段（`withTimeout`）、SSE | AX 调用不可无超时 |
 | `NetworkMonitor` | `AppState`（离线直接判 `offline`）、`EtymologyStore` | 避免无谓请求与假失败 |
@@ -168,7 +169,7 @@ Lumi/
 
 ## 6. 改动时需要留意的地方
 
-- **`AppSettings` 是宽耦合点**（20 个文件）。往里加字段最省事，但每加一个"全局开关"都会同时影响面板、工作台、网页桥和设置界面；能让引擎自己决定的，别放进去。
+- **`AppSettings` 是宽耦合点**（19 个文件依赖它）。往里加字段最省事，但每加一个"全局开关"都会同时影响面板、工作台、网页桥和设置界面；能让引擎自己决定的，别放进去。
 - **新增服务**优先走 `ServiceKind` + `OpenAICompatibleProvider` 配置（base URL / key / model），只有协议不兼容（如 Claude、Gemini、DeepL）才新增 Provider 文件。新服务记得 `family`、`defaultModel`、`needsKey` 三处一起补，`ModelDirectory` 才拉得到在线模型列表。
 - **新增 Swift 文件不需要改任何工程文件**：SwiftPM 自动发现 `Sources/Lumi` 下的所有 `.swift`。但新增**资源**要在 `build.sh` 的拷贝逻辑里考虑（目前 `Resources/*` 整目录复制，`Info.plist` 除外）。
 - **回环端口是攻击面**：任何本机页面都能发请求到 `127.0.0.1:47121`，安全性完全靠 `PageBridge` 里那三道校验。改 `route(_:)` 之前先读该文件的注释与 `PageTranslator` 的请求校验。
@@ -231,9 +232,10 @@ python3 scripts/test-security-scan.py     # 验证守卫自己还有效
 git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 ```
 
-**CI**（`.github/workflows/security.yml`）在 push / PR / 手动触发时跑三个平行 job，任一失败即红。它跑在 **GitHub 云端的 Linux 临时虚拟机**（`ubuntu-latest`）上——不是你的 Mac，你不需要装 Linux，也不需要装任何东西；那台机器把你的代码 clone 过去跑一遍 Python 脚本就销毁。选 Linux 是因为计费系数最低（Linux 1×，macOS 10×），而编译本来也做不了（见下）。刻意**不装第三方 action、不联网下载扫描器**，只用 Python 标准库，所以你本地能 100% 复现同一条命令。也刻意**不编译 App**：项目要求 macOS 26，而 GitHub 的 `macos` runner 还没到那个版本，`swift build` 只会红得没信息量——构建请在本地 `./build.sh`。
+**CI**（`.github/workflows/security.yml`）在 push / PR / 手动触发时跑四个平行 job，任一失败即红。它跑在 **GitHub 云端的 Linux 临时虚拟机**（`ubuntu-latest`）上——不是你的 Mac，你不需要装 Linux，也不需要装任何东西；那台机器把你的代码 clone 过去跑一遍 Python 脚本就销毁。选 Linux 是因为计费系数最低（Linux 1×，macOS 10×），而编译本来也做不了（见下）。刻意**不装第三方 action、不联网下载扫描器**，只用 Python 标准库，所以你本地能 100% 复现同一条命令。也刻意**不编译 App**：项目要求 macOS 26，而 GitHub 的 `macos` runner 还没到那个版本，`swift build` 只会红得没信息量——构建请在本地 `./build.sh`。
 
-**守卫自己也要被验证**：`scripts/test-security-scan.py` 在临时仓库里塞 17 种真形状的假密钥，断言全部命中；再塞 14 类正常内容（文档例句、`com.tianruijia.` bundle id、sha256 常量、noreply 邮箱…），断言零误报。CI 里跑它，所以“永远绿”的假扫描器活不过下一次提交。
+**守卫自己也要被验证**：`scripts/test-security-scan.py` 在临时仓库里塞 17 种真形状的假密钥，断言全部命中；再塞 14 类正常内容（文档例句、`com.tianruijia.` bundle id、sha256 常量、noreply 邮箱…），断言零误报；
+最后把 7 条设计契约各改坏一次，断言都会被抓住——**一共 38 项**。CI 里跑它，所以“永远绿”的假扫描器活不过下一次提交。
 
 **几个刻意没做的事**（免得以后反复讨论）：
 

@@ -7,8 +7,8 @@
   "visualReview": "pending",
   "artifact": {
     "path": "docs/lumi-dataflow.html",
-    "sha256": "2147e1592611d77fa30f35dc09c1e5e3bd633620894eb54d4e1b6a5a83ef3f96",
-    "bytes": 819541
+    "sha256": "1d4d46115d04badd8239613e0e092d83dd5cde0f259cddd3b15959cf138d1029",
+    "bytes": 819655
   },
   "state": {
     "detail": "read",
@@ -95,8 +95,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1150,
-        "diagramWidth": 1120,
+        "readerWidth": 1119,
+        "diagramWidth": 1089,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 7,
         "minimumProjectedNodeText": "Carbon 热键",
@@ -225,8 +225,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1150,
-        "diagramWidth": 1120,
+        "readerWidth": 1119,
+        "diagramWidth": 1089,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 7,
         "minimumProjectedNodeText": "Carbon 热键",
@@ -354,8 +354,8 @@
         "overflowX": false,
         "overflowY": false,
         "ok": true,
-        "readerWidth": 1150,
-        "diagramWidth": 1120,
+        "readerWidth": 1119,
+        "diagramWidth": 1089,
         "viewBoxWidth": 1080,
         "minimumProjectedNodeTextPx": 7,
         "minimumProjectedNodeText": "Carbon 热键",

@@ -5617,8 +5617,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; AX 取词 0.25s 消息超时、0.7s 总超时，失败后走 ⌘C 兜底</li>
-          <li>&bull; 截图取词走 Vision，识别不出内容时静默收场，不弹错误</li>
-          <li>&bull; 取词结果带来源与检测语言，来源决定目标语言和是否走词典</li>
+          <li>&bull; 截图取词走 Vision：用户取消就静默返回，识别为空或失败时在面板上说明原因</li>
+          <li>&bull; 取词结果先检测语言（决定翻译方向），再按长度与词数决定是否按查词处理</li>
         </ul>
       </div>
 
@@ -5628,7 +5628,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>引擎侧</h3>
         </div>
         <ul>
-          <li>&bull; 8 个实现共用一条 AsyncThrowingStream，逐服务上报增量或整体替换</li>
+          <li>&bull; 8 个实现共用 AsyncThrowingStream，逐服务上报增量、整体替换或结构化词条</li>
           <li>&bull; DocumentContext 只在能用的引擎上启用，离线引擎灰掉而不是假装能用</li>
           <li>&bull; 网页段落和本机文档走同一套引擎，译文按指纹落盘复用</li>
         </ul>
@@ -5640,7 +5640,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>结果侧</h3>
         </div>
         <ul>
-          <li>&bull; 焦点先跟随最快的服务，锁定后不再自动跳动</li>
+          <li>&bull; 焦点先落在队列最上面的服务；10 秒宽限期内提升到第一个有内容的服务，之后锁定</li>
           <li>&bull; 回退提示只在更高优先级的服务确实失败后才出现</li>
           <li>&bull; 条目为空的词典按「没有意见」呈现，不算错误，也不触发回退</li>
         </ul>

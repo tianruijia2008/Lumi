@@ -12,7 +12,18 @@ open build/Lumi.app
 ```
 
 `build.sh` 做三件事：SwiftPM 编译 → 组装 `.app` bundle → 用本机的免费个人团队证书签名。
-换签名身份：`LUMI_IDENTITY="..." ./build.sh`。
+
+签名身份**不在源码里**（个人邮箱和团队 ID 不该进仓库，仓库守卫会拦）。它按顺序找：
+
+```bash
+echo "Apple Development: 你的名字 (TEAMID)" > .lumi-identity   # 已被 .gitignore 忽略
+LUMI_IDENTITY="Apple Development: 你的名字 (TEAMID)" ./build.sh   # 或一次性给环境变量
+security find-identity -v -p codesigning                          # 查自己有哪些身份
+```
+
+都没有就会停下来告诉你怎么办（`LUMI_IDENTITY="-"` 可做 ad-hoc 签名，只够验证能编译，
+TCC 授权会失效）。身份要保持稳定：换了身份，TCC 会当成另一个 App，「辅助功能」和
+「屏幕录制」都要重新授权。
 
 ## 运行
 
@@ -329,7 +340,12 @@ Easydict 卡死的根因是同步阻塞调用跑在主线程上。这里每一�
 
 ## 结构
 
+**完整的模块地图、两张可交互图（结构图 + 数据流图）、以及仓库守卫的说明，都在
+[`STRUCTURE.md`](STRUCTURE.md)**（图在 `docs/*.html`，双击就能打开）。给 AI 代理的
+约定在 [`AGENTS.md`](AGENTS.md)。下面只是源码分区的简表。
+
 ```
+App/       应用入口、菜单栏、面板窗口控制器
 Core/       超时原语、语言检测、设置、钥匙串、网络状态、查询协调与回退
 Input/      全局快捷键（Carbon）、AX 取词、截图 OCR、权限
 Translate/  服务协议 + Apple / Claude / OpenAI / Ollama / 在线
@@ -341,6 +357,18 @@ Extensions/Safari/
   SafariWebExtensionHandler.swift   appex 的原生部分，只做转发
   WebExtension/                     manifest、内容脚本、后台脚本、弹窗
   Harness/                          不经 Safari 调试扩展的测试页
+
+scripts/     仓库守卫（密钥 / 卫生 / 文档 / 设计契约四阶段）与它的自测
+.githooks/   提交前钩子（core.hooksPath 指到这里，./scripts/install-hooks.sh 启用）
+.github/     CI：push 与 PR 时跑同一套守卫
+docs/        两张图 + 浏览器证据 + 图规格
+```
+
+提交前想自己过一遍完整检查（钩子只查这次提交的内容）：
+
+```bash
+python3 scripts/security-scan.py        # 四个阶段；CI 跑的是同一条命令
+python3 scripts/test-security-scan.py   # 验证守卫自己还有效（38 项断言）
 ```
 
 界面只有**两层玻璃**：面板本身，因为它是浮在桌面上的一个物体；输入框，因为它是

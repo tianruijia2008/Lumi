@@ -127,7 +127,7 @@
       "type": "database",
       "label": "Core 基础服务",
       "sublabel": "设置 · 密钥 · 超时",
-      "tag": "20 个文件引用",
+      "tag": "19 个文件依赖",
       "pos": [
         450,
         323
@@ -346,7 +346,7 @@
       "dot": "cyan",
       "title": "取词入口",
       "items": [
-        "Carbon 全局热键是唯一入口，四个动作全部派发给 PanelController",
+        "⌥D / ⌥A / ⌥S 交给 PanelController，⌥W 直接开工作台",
         "AX 取词 0.25s 消息超时 + 0.7s 总超时，卡死的 App 不会拖垮界面",
         "Safari 扩展只能走 127.0.0.1:47121，它读不到 Lumi 的钥匙串"
       ]
@@ -365,7 +365,7 @@
       "title": "共享底座",
       "items": [
         "9 个源码模块在同一个 SwiftPM target 内，零第三方依赖",
-        "AppSettings 是耦合最广的类型，被 20 个文件引用",
+        "AppSettings 是耦合最广的类型：19 个文件依赖它",
         "Claude / Gemini / DeepL / OpenAI 兼容四个 Provider 才读 Keychain"
       ]
     }

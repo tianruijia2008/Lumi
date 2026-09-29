@@ -7,6 +7,7 @@
     python3 scripts/security-scan.py --phase secrets            # 扫全部已跟踪文件
     python3 scripts/security-scan.py --phase hygiene
     python3 scripts/security-scan.py --phase docs
+    python3 scripts/security-scan.py --phase invariants         # 代码注释里写明的设计契约
     python3 scripts/security-scan.py                            # 全部（CI 默认）
 
 只用 Python 标准库，不需要联网、不需要装东西。
@@ -364,6 +365,8 @@ def scan_hygiene(root: Path, files: list[str]) -> list[Finding]:
 # ---------------------------------------------------------------- phase: docs
 
 
+# 文档类文件：链接都要有效（新增一份文档就加进来，别让它变成第二个漂移源）。
+DOC_FILES = ("STRUCTURE.md", "README.md", "AGENTS.md")
 CENSUS_ROW = re.compile(r"^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|\s*([\d,]+)\s*\|")
 CENSUS_TOTAL = re.compile(r"^\|\s*\*\*合计\*\*\s*\|\s*\*\*(\d+)\*\*\s*\|\s*\*\*([\d,]+)\*\*\s*\|")
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -382,7 +385,7 @@ def scan_docs(root: Path) -> list[Finding]:
         return [Finding("STRUCTURE.md", 0, "docs/missing", "找不到结构文档")]
 
     # 1) 相对链接必须存在
-    for doc in ("STRUCTURE.md", "README.md"):
+    for doc in DOC_FILES:
         path = root / doc
         if not path.is_file():
             continue

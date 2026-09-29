@@ -5232,8 +5232,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="520" y="239" class="t-backend" font-size="7" text-anchor="middle">@Observable</text>
         </g>
 
-        <g id="node-core" data-node-id="core" data-node-label="Core 基础服务" tabindex="0" role="button" aria-label="聚焦Core 基础服务，设置 · 密钥 · 超时, 架构组件" aria-pressed="false" data-node-kind="database" data-node-sublabel="设置 · 密钥 · 超时" data-node-tag="20 个文件引用" data-node-context="架构组件">
-          <title>Core 基础服务 · 设置 · 密钥 · 超时 · 架构组件 · 20 个文件引用</title>
+        <g id="node-core" data-node-id="core" data-node-label="Core 基础服务" tabindex="0" role="button" aria-label="聚焦Core 基础服务，设置 · 密钥 · 超时, 架构组件" aria-pressed="false" data-node-kind="database" data-node-sublabel="设置 · 密钥 · 超时" data-node-tag="19 个文件依赖" data-node-context="架构组件">
+          <title>Core 基础服务 · 设置 · 密钥 · 超时 · 架构组件 · 19 个文件依赖</title>
           <rect x="450" y="323" width="140" height="86" rx="6" class="c-mask"/>
           <rect x="450" y="323" width="140" height="86" rx="6" class="c-database" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(456 329) scale(0.6875)">
@@ -5242,7 +5242,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="520" y="364" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Core 基础服务</text>
         <text data-detail="context" x="520" y="380" class="t-muted" font-size="9" text-anchor="middle">设置 · 密钥 · 超时</text>
-        <text data-detail="fine" x="520" y="401" class="t-database" font-size="7" text-anchor="middle">20 个文件引用</text>
+        <text data-detail="fine" x="520" y="401" class="t-database" font-size="7" text-anchor="middle">19 个文件依赖</text>
         </g>
 
         <g id="node-provider" data-node-id="provider" data-node-label="TranslationProvider" tabindex="0" role="button" aria-label="聚焦TranslationProvider，15 个服务 · 8 个实现, 架构组件" aria-pressed="false" data-node-kind="backend" data-node-sublabel="15 个服务 · 8 个实现" data-node-tag="AsyncThrowingStream" data-node-context="架构组件">
@@ -5569,7 +5569,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>取词入口</h3>
         </div>
         <ul>
-          <li>&bull; Carbon 全局热键是唯一入口，四个动作全部派发给 PanelController</li>
+          <li>&bull; ⌥D / ⌥A / ⌥S 交给 PanelController，⌥W 直接开工作台</li>
           <li>&bull; AX 取词 0.25s 消息超时 + 0.7s 总超时，卡死的 App 不会拖垮界面</li>
           <li>&bull; Safari 扩展只能走 127.0.0.1:47121，它读不到 Lumi 的钥匙串</li>
         </ul>
@@ -5594,7 +5594,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>&bull; 9 个源码模块在同一个 SwiftPM target 内，零第三方依赖</li>
-          <li>&bull; AppSettings 是耦合最广的类型，被 20 个文件引用</li>
+          <li>&bull; AppSettings 是耦合最广的类型：19 个文件依赖它</li>
           <li>&bull; Claude / Gemini / DeepL / OpenAI 兼容四个 Provider 才读 Keychain</li>
         </ul>
       </div>

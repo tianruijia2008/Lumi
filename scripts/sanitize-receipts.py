@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
-"""把 visual-check receipt 里的绝对路径改写成仓库相对路径。
+"""把回执（receipt）里的绝对路径改写成仓库相对路径。
 
-`archify visual-check` 会把 `artifact.path` 写成绝对路径，形如
+管两类：visual-check 的浏览器证据，以及 deliver 的交付回执（docs/archify/*.deliver.json）。
+
+`archify visual-check` 会把 `artifact.path`、`deliver --json` 会把 `input`/`output` 
+写成绝对路径，形如
 `/Users/<你>/Developer/Lumi/docs/lumi-architecture.html`。直接提交就等于把家目录
 （也就是你的用户名）写进仓库——守卫的 `personal/home-path` 规则会因此报错，
 这个脚本就是那个报错的修复动作。
@@ -9,7 +12,7 @@
 只改 `…/docs/…` 这种指向仓库内文件的字符串，其它字段（sha256、视口、主题）不动，
 所以 receipt 与 HTML 的指纹校验依然成立。幂等，可以重复跑。
 
-    python3 scripts/sanitize-receipts.py            # 就地改写 docs/*.visual-check.json
+    python3 scripts/sanitize-receipts.py            # 就地改写两类回执
     python3 scripts/sanitize-receipts.py --check     # 只报告，不写（CI 用）
 """
 

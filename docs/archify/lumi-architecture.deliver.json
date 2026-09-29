@@ -6,12 +6,12 @@
   "input": "docs/archify/lumi-architecture.json",
   "output": "docs/lumi-architecture.html",
   "specification": {
-    "sha256": "d853585f2756afddb84f74fb3a8b7aaf2dbe7ab8bbb341980508c90f4ed0b9db",
-    "bytes": 7388
+    "sha256": "ae2731566eb0037617c0aa24fef5c96a0180c245ee2164d26c94a1977a265fe3",
+    "bytes": 7375
   },
   "artifact": {
-    "sha256": "64e0f6e3845721d9789123957b4f3b097dd7c9c582dcf20c0be5fa5774be3438",
-    "bytes": 814782
+    "sha256": "1f6ed9b8d122ae45a0bf0031062b2224c919160b44aadf33173c8f754d0840dc",
+    "bytes": 814768
   },
   "validation": {
     "checksPassed": 9,
