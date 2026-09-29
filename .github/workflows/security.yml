@@ -60,6 +60,8 @@ jobs:
           python-version: "3.12"
       - name: 检查文档漂移、死链与图产物指纹
         run: python3 scripts/security-scan.py --phase docs
+      - name: 检查 receipt 不含绝对家目录路径
+        run: python3 scripts/sanitize-receipts.py --check
       - name: 检查脚本语法
         run: |
           bash -n build.sh

@@ -287,23 +287,25 @@ def scan_secrets(root: Path, files: list[str], staged: bool,
             if rule in {"key-material", "env-file", "ssh-key", "credentials"} and pattern.search(path):
                 findings.append(Finding(path, 0, f"secret-file/{rule}", why))
         # 2) 内容
-        if GENERATED.search(path):
-            continue
+        # 生成物（交付的 HTML、visual-check receipt）不逐行扫密钥形状——它们体积大、
+        # 全是机器写的，扫了也没法改；但**个人信息照样查**：receipt 里就带着绝对
+        # 家目录路径（.artifact.path），那是真会泄露用户名的东西。
+        generated = bool(GENERATED.search(path))
         text = read_text(root, path, staged)
         if text is None:
             continue
-        if ALLOW_FILE_MARKER in "\n".join(text.splitlines()[:8]):
+        if not generated and ALLOW_FILE_MARKER in "\n".join(text.splitlines()[:8]):
             allowed_files.append(path)
             continue
         for lineno, line in enumerate(text.splitlines(), start=1):
-            for rule, pattern, why in SECRET_PATTERNS:
+            for rule, pattern, why in (() if generated else SECRET_PATTERNS):
                 for match in pattern.finditer(line):
                     value = match.group(0)
                     if is_placeholder(value):
                         continue
                     findings.append(Finding(path, lineno, f"secret/{rule}",
                                             f"{why}：{redact(value)}"))
-            for match in ENTROPY_ASSIGNMENT.finditer(line):
+            for match in (() if generated else ENTROPY_ASSIGNMENT.finditer(line)):
                 value = match.group(2)
                 # 真密钥几乎总含数字；要求有数字是为了放过
                 # `key = "data-relationship-lens-focus"` 这类连字符标识符。

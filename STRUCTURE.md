@@ -14,6 +14,7 @@ ARCHIFY=~/.pi/agent/skills/archify
 node $ARCHIFY/bin/archify.mjs deliver architecture docs/archify/lumi-architecture.json docs/lumi-architecture.html --quality showcase
 node $ARCHIFY/bin/archify.mjs deliver dataflow     docs/archify/lumi-dataflow.json     docs/lumi-dataflow.html     --quality showcase
 node $ARCHIFY/bin/archify.mjs visual-check docs/lumi-architecture.html --json
+python3 scripts/sanitize-receipts.py   # visual-check 会写绝对路径，提交前改成相对路径
 ```
 
 > 图是**静态 HTML**（内嵌 SVG + 运行时），不需要服务器、不需要联网。
@@ -185,6 +186,8 @@ Lumi/
 | `docs/lumi-dataflow.html` | `docs/archify/lumi-dataflow.json` | 9/9 通过，0 error / 0 warning |
 
 浏览器证据（`visual-check`）在 1440×900、1600×1000、1920×1080、2048×1320、明/暗两套主题下均无溢出（`scrollWidth/Height` ≤ 视口），文字投影 ≥ 6px；截图与 receipt 落在 `docs/*.visual-check.*`，可随时用上面的命令重跑。
+
+⚠️ `visual-check` 会把 `artifact.path` 写成**绝对路径**（里面含你的家目录 / 用户名），所以提交前要跑一次 `python3 scripts/sanitize-receipts.py` 把它改成仓库相对路径——守卫的 `personal/home-path` 规则和 CI 的 `--check` 会拦住忘记的那次。这个改写只动路径字段，receipt 与 HTML 的 sha256 校验依然成立。
 
 **图上标了什么，不标什么**：架构图只画“谁调用谁”（不画数据内容），数据流图只画“什么东西从哪到哪”（五个阶段 = 触发 / 取词·导入 / 分段·调度 / 引擎·传输 / 呈现·落盘）。两张图都不含部署、进程或第三方基础设施——Lumi 没有这些。节点是**模块级**的（`Workbench` 10 个文件合成 1 个节点），文件级细节见第 3 节。
 
