@@ -214,7 +214,7 @@ python3 scripts/test-security-scan.py     # 验证守卫自己还有效
 git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 ```
 
-**CI**（`.github/workflows/security.yml`）在 push / PR / 手动触发时跑三个平行 job，任一失败即红。刻意**不装第三方 action、不联网下载扫描器**，只用 Python 标准库，所以你本地能 100% 复现同一条命令。也刻意**不编译 App**：项目要求 macOS 26，而 GitHub 的 `macos` runner 还没到那个版本，`swift build` 只会红得没信息量——构建请在本地 `./build.sh`。
+**CI**（`.github/workflows/security.yml`）在 push / PR / 手动触发时跑三个平行 job，任一失败即红。它跑在 **GitHub 云端的 Linux 临时虚拟机**（`ubuntu-latest`）上——不是你的 Mac，你不需要装 Linux，也不需要装任何东西；那台机器把你的代码 clone 过去跑一遍 Python 脚本就销毁。选 Linux 是因为计费系数最低（Linux 1×，macOS 10×），而编译本来也做不了（见下）。刻意**不装第三方 action、不联网下载扫描器**，只用 Python 标准库，所以你本地能 100% 复现同一条命令。也刻意**不编译 App**：项目要求 macOS 26，而 GitHub 的 `macos` runner 还没到那个版本，`swift build` 只会红得没信息量——构建请在本地 `./build.sh`。
 
 **守卫自己也要被验证**：`scripts/test-security-scan.py` 在临时仓库里塞 17 种真形状的假密钥，断言全部命中；再塞 14 类正常内容（文档例句、`com.tianruijia.` bundle id、sha256 常量、noreply 邮箱…），断言零误报。CI 里跑它，所以“永远绿”的假扫描器活不过下一次提交。
 
