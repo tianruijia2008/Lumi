@@ -366,7 +366,7 @@ def scan_hygiene(root: Path, files: list[str]) -> list[Finding]:
 
 
 # 文档类文件：链接都要有效（新增一份文档就加进来，别让它变成第二个漂移源）。
-DOC_FILES = ("STRUCTURE.md", "README.md", "AGENTS.md")
+DOC_FILES = ("STRUCTURE.md", "README.md", "TECHSHEET.md", "AGENTS.md", "CONTRIBUTING.md")
 CENSUS_ROW = re.compile(r"^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|\s*([\d,]+)\s*\|")
 CENSUS_TOTAL = re.compile(r"^\|\s*\*\*合计\*\*\s*\|\s*\*\*(\d+)\*\*\s*\|\s*\*\*([\d,]+)\*\*\s*\|")
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")

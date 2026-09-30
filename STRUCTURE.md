@@ -22,7 +22,7 @@ python3 scripts/sanitize-receipts.py   # 两类回执都会写绝对路径，提
 > 图是**静态 HTML**（内嵌 SVG + 运行时），不需要服务器、不需要联网。
 > 修改结构后请先改 JSON 再重新 `deliver`，不要在 HTML 上手改。
 
-**证据标签**：**[已验证]** 直接读文件或 grep 得到；**[README]** 只在 `README.md` 中说明、本次未独立复现；**[未验证]** 结构上合理但没查。
+**证据标签**：**[已验证]** 直接读文件或 grep 得到；**[README]** / **[TECHSHEET]** 只在 `README.md`（功能）或 `TECHSHEET.md`（技术细节）中说明、本次未独立复现；**[未验证]** 结构上合理但没查。
 
 ---
 
@@ -35,7 +35,7 @@ python3 scripts/sanitize-receipts.py   # 两类回执都会写绝对路径，提
 | 构建 | SwiftPM **单个 executable target `Lumi`**（`path: Sources/Lumi`），**零第三方依赖** **[已验证]** |
 | 规模 | 69 个 Swift 文件 / 16,272 行 **[已验证：文件统计]** |
 | 打包 | `build.sh`：SwiftPM 编译 → 手工组装 `.app` → 本机免费个人团队证书签名（身份**不写进源码**，见第 8 节）；Safari appex 用 `swiftc` 单独编译后 `lsregister` 注册 **[已验证]** |
-| 启动 | 必须 `./run.sh`（内部走 `open`）或访达启动；直接执行 bundle 内二进制会把 TCC 权限记到终端头上 **[README + `run.sh` 注释]** |
+| 启动 | 必须 `./run.sh`（内部走 `open`）或访达启动；直接执行 bundle 内二进制会把 TCC 权限记到终端头上 **[TECHSHEET + `run.sh` 注释]** |
 | 版本控制 | git 仓库，分支 `main`；密钥 / 卫生 / 文档 / 设计契约四道闸门 + CI，见第 8 节 **[已验证]** |
 | 额外产物 | Safari Web Extension（JS）、`Tools/IconForge`（CoreGraphics 画图标 → `.icns`） |
 
@@ -52,7 +52,10 @@ Lumi/
 ├── .lumi-identity                 # 签名身份（本地、不入库；build.sh 读它）
 ├── .githooks/pre-commit           # 提交前守卫（core.hooksPath 指向这里）
 ├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档 / 契约四道闸门
-├── README.md                      # 设计取向与自测入口（比本文更细的行为说明）
+├── README.md                      # 给使用者：功能、截图、安装、隐私
+├── TECHSHEET.md                   # 技术说明：设计取向、实现细节、自测入口
+├── CONTRIBUTING.md                # 提 issue / PR 的约定与贡献授权
+├── LICENSE                        # GPL-3.0
 ├── AGENTS.md                      # 给 AI 代理的约定（红线 / 检查 / 改图流程）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
@@ -63,7 +66,8 @@ Lumi/
 │   ├── lumi-architecture.html     # 结构图（可交互）
 │   ├── lumi-dataflow.html         # 数据流图（可交互）
 │   ├── *.visual-check.*           # 浏览器证据：截图 + receipt（可再生成）
-│   └── archify/*.json             # 两张图的生成规格
+│   ├── archify/*.json             # 两张图的生成规格
+│   └── screenshots/*.png          # README 用的截图
 ├── Resources/                     # Info.plist、Lumi.icns（由 IconForge 生成）
 ├── Tools/IconForge/               # main.swift + make-icon.sh
 ├── Extensions/Safari/
@@ -154,7 +158,7 @@ Lumi/
 
 **扇出与回退**：`AppState.submit()` 用 `withTaskGroup` **并行**跑所有启用服务；焦点立刻落在队列最上面的服务（"等待中"不能表现为空白），`promotionDeadline` 之后锁定，不再自动跳；用户点 chip 也是永久锁定。回退只是"显示哪一条"的规则，不是串行顺序（`Core/AppState.swift`）。`ResultCard.Status` 把 `empty`（词典对这种输入没有意见）与 `failed` 分开，空结果不算错误。
 
-**面板几何**：持久化的是**窗口左上角锚点**，不是 AppKit 的原点；结果卡出现时保持顶边不动，用**赋值**而不是高度增量；边界钳制后如果确实移动了锚点，就采纳新锚点，否则下次 resize 会来回震荡（`README.md` 有实测结论，`PanelController` 里是这套做法）。
+**面板几何**：持久化的是**窗口左上角锚点**，不是 AppKit 的原点；结果卡出现时保持顶边不动，用**赋值**而不是高度增量；边界钳制后如果确实移动了锚点，就采纳新锚点，否则下次 resize 会来回震荡（`TECHSHEET.md` 有实测结论，`PanelController` 里是这套做法）。
 
 **文档工作台**：`Segmenter` 切成对齐单元（Markdown 保留结构），`WorkbenchDocument` 持有"一篇文章"的状态，`DocumentStore` 按**内容指纹**落盘以复用已付费的译文，`DropCheck` 抓"悄悄漏译/缩写"的段落，`Proofreading` 定位校对问题。
 
@@ -162,7 +166,7 @@ Lumi/
 
 **词源**：`EtymologyStore`（单例）→ `Wiktionary` 抓取 → `WikiText` 做"够用就好"的 wikitext 解析（不展开模板）→ `EtymologyParser`/`EtymologyEntry` → 面板上的一行 teaser 或完整词源页；结果进内存缓存并记 recents。
 
-**自测入口**（不依赖人手点屏幕）**[README + `App/LumiApp.swift`]**：
+**自测入口**（不依赖人手点屏幕）**[TECHSHEET + `App/LumiApp.swift`]**：
 `LUMI_SHOW_ON_LAUNCH=1` 直接开面板，`LUMI_DEMO_QUERY=<词>` 灌查询，`LUMI_WINDOW_SHOT=<path>` 用 `screencapture -l` 拍真实窗口（唯一能看到玻璃材质的路径），`LUMI_SNAPSHOT=<path>` 走 `ImageRenderer` 离屏渲染（只适合看排版），`LUMI_SHOW_WORKBENCH=1` / `LUMI_WORKBENCH_ENGINE=online|offline` 开工作台。
 
 ---
