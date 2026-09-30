@@ -33,7 +33,7 @@ python3 scripts/sanitize-receipts.py   # 两类回执都会写绝对路径，提
 | 形态 | macOS 取词翻译 / 词典面板，受 Easydict 启发、代码从零写起 **[README]**；许可证 GPL-3.0 **[已验证 `LICENSE`]** |
 | 语言 / UI | Swift 6（`swiftLanguageMode(.v6)`）+ SwiftUI，`platforms: [.macOS("26.0")]` **[已验证 `Package.swift`]** |
 | 构建 | SwiftPM **单个 executable target `Lumi`**（`path: Sources/Lumi`），**零第三方依赖** **[已验证]** |
-| 规模 | 69 个 Swift 文件 / 16,240 行 **[已验证：文件统计]** |
+| 规模 | 69 个 Swift 文件 / 16,272 行 **[已验证：文件统计]** |
 | 打包 | `build.sh`：SwiftPM 编译 → 手工组装 `.app` → 本机免费个人团队证书签名（身份**不写进源码**，见第 8 节）；Safari appex 用 `swiftc` 单独编译后 `lsregister` 注册 **[已验证]** |
 | 启动 | 必须 `./run.sh`（内部走 `open`）或访达启动；直接执行 bundle 内二进制会把 TCC 权限记到终端头上 **[README + `run.sh` 注释]** |
 | 版本控制 | git 仓库，分支 `main`；密钥 / 卫生 / 文档 / 设计契约四道闸门 + CI，见第 8 节 **[已验证]** |
@@ -92,13 +92,13 @@ Lumi/
 | `App` | 2 | 512 | 应用入口、菜单栏、面板窗口 | `LumiApp`、`AppDelegate`、`PanelController` |
 | `Core` | 9 | 1,012 | 查询扇出、设置、凭据、超时、网络 | `AppState`、`AppSettings`、`Keychain`、`Timeout`、`NetworkMonitor` |
 | `Input` | 4 | 408 | 拿到"用户选了什么" | `HotKeyCenter`、`TextGrabber`、`ScreenOCR`、`Permissions` |
-| `Translate` | 15 | 1,660 | 调服务并产出流式事件 | `TranslationProvider`、`ServiceKind`、`SSE`、`Prompts`、`ModelDirectory` |
+| `Translate` | 15 | 1,664 | 调服务并产出流式事件 | `TranslationProvider`、`ServiceKind`、`SSE`、`Prompts`、`ModelDirectory` |
 | `Etymology` | 7 | 1,819 | 词源页的数据 | `EtymologyStore`、`Wiktionary`、`WikiText`、`EtymologyParser` |
-| `Workbench` | 10 | 3,589 | 长文分段翻译与校对 | `WorkbenchEngine`、`WorkbenchDocument`、`Segmenter`、`DocumentStore` |
+| `Workbench` | 10 | 3,610 | 长文分段翻译与校对 | `WorkbenchEngine`、`WorkbenchDocument`、`Segmenter`、`DocumentStore` |
 | `PageBridge` | 2 | 517 | 让 Safari 扩展借用本机引擎 | `PageBridge`、`PageTranslator` |
 | `Speech` | 1 | 41 | 朗读 | `Speaker` |
-| `UI` | 19 | 6,682 | 全部视图与窗口修饰 | `GlassPanel`、`RootView`、`ServiceRail`、`SettingsView` |
-| **合计** | **69** | **16,240** | | |
+| `UI` | 19 | 6,689 | 全部视图与窗口修饰 | `GlassPanel`、`RootView`、`ServiceRail`、`SettingsView` |
+| **合计** | **69** | **16,272** | | |
 
 ---
 

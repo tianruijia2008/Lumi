@@ -131,9 +131,11 @@ enum Prompts {
         - Translate every part of the segment. If a term has no good \
           equivalent, transliterate it or keep the original in parentheses — \
           never drop it, and never summarise instead of translating.
-        - Reproduce numbers, units, equations, LaTeX, citation markers, table \
-          and figure references, URLs and code identifiers exactly as written. \
-          Do not round, re-format or localise them.
+        - Reproduce numbers, unit symbols (km, kg, °C, %), equations, LaTeX, \
+          citation markers, table and figure references, URLs and code \
+          identifiers exactly as written. Do not round, re-format or localise \
+          them. A unit written out as a word ("litres", "miles") is a word: \
+          translate it.
         - Keep one rendering per technical term for the whole document.
         - Preserve the segment's own line breaks, list markers and indentation.
         - Match the register of the source. Academic prose stays academic.
@@ -145,7 +147,9 @@ enum Prompts {
 
             - The text is Markdown. Keep every piece of syntax exactly — emphasis \
               markers, `inline code`, links and their URLs, images, HTML tags, \
-              table pipes — and translate only the words a reader sees. Never \
+              table pipes — and translate only the words a reader sees. Words \
+              inside ** or * or _ are ordinary prose: translate them and keep \
+              only the markers. Never \
               translate inside backticks or URLs. Do not add a heading marker, \
               list marker or quote marker that is not in the segment.
             """

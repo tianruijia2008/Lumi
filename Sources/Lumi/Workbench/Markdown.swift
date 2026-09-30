@@ -37,6 +37,26 @@ enum SegmentBlock: Codable, Hashable, Sendable {
     var isHeading: Bool { if case .heading = self { true } else { false } }
     var isListItem: Bool { if case .listItem = self { true } else { false } }
 
+    /// A model told "this is a level-2 heading" sometimes answers
+    /// "## 标题". Segment text never carries its block syntax — export adds
+    /// it back — so an echoed marker would print twice. Only stripped when
+    /// the source does not itself begin that way.
+    func strippingEchoedSyntax(_ text: String, source: String) -> String {
+        let pattern: String
+        switch self {
+        case .heading: pattern = #"^#{1,6}[ \t]+"#
+        case .listItem: pattern = #"^(?:[-*+]|\d{1,9}[.)])[ \t]+(?:\[[ xX]\][ \t]+)?"#
+        case .quote: pattern = #"(?m)^>[ \t]?"#
+        default: return text
+        }
+        guard source.range(of: pattern, options: .regularExpression) == nil else { return text }
+        var out = text.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        if isHeading {
+            out = out.replacingOccurrences(of: #"[ \t]+#+[ \t]*$"#, with: "", options: .regularExpression)
+        }
+        return out
+    }
+
     /// How a prompt describes the segment, so a heading comes back as a
     /// heading rather than as a sentence with a full stop.
     var promptHint: String? {

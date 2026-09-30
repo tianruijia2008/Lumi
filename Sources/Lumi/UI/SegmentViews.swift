@@ -204,7 +204,7 @@ struct SegmentRow: View {
                 if !open.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(open) { issue in
-                            IssueCard(issue: issue, scale: scale,
+                            IssueCard(issue: issue, scale: scale, markdown: markdown,
                                       applicable: issue.canApply && segment.translation.contains(issue.quote),
                                       accept: { actions.accept(issue.id) },
                                       dismiss: { actions.dismiss(issue.id) })
@@ -455,6 +455,9 @@ private struct SegmentMenu: View {
 private struct IssueCard: View {
     let issue: ProofIssue
     let scale: CGFloat
+    /// Quotes keep their syntax so accepting can find them in the
+    /// translation; the card shows what the reader sees instead of `**2,100**`.
+    let markdown: Bool
     let applicable: Bool
     let accept: () -> Void
     let dismiss: () -> Void
@@ -502,23 +505,27 @@ private struct IssueCard: View {
     @ViewBuilder
     private var change: some View {
         if !issue.quote.isEmpty, let suggestion = issue.suggestion {
-            (Text(issue.quote).strikethrough(color: .secondary).foregroundStyle(.secondary)
+            (Text(shown(issue.quote)).strikethrough(color: .secondary).foregroundStyle(.secondary)
              + Text("  →  ").foregroundStyle(.tertiary)
-             + Text(suggestion).foregroundStyle(.primary))
+             + Text(shown(suggestion)).foregroundStyle(.primary))
                 .font(.system(size: 12 * scale))
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         } else if let suggestion = issue.suggestion {
-            (Text("建议  ").foregroundStyle(.tertiary) + Text(suggestion))
+            (Text("建议  ").foregroundStyle(.tertiary) + Text(shown(suggestion)))
                 .font(.system(size: 12 * scale))
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         } else if !issue.quote.isEmpty {
-            Text("「\(issue.quote)」")
+            Text("「\(shown(issue.quote))」")
                 .font(.system(size: 12 * scale))
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
         }
+    }
+
+    private func shown(_ text: String) -> String {
+        markdown ? Markdown.plainText(text) : text
     }
 
     private var buttons: some View {

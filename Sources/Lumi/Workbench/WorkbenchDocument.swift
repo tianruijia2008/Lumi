@@ -624,9 +624,10 @@ final class WorkbenchDocument {
     /// Records a translation and judges whether it actually translated the
     /// segment.
     private func deliver(index: Int, text: String) {
-        let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let markdown = format == .markdown
         apply(index: index) { segment in
+            let clean = segment.block.strippingEchoedSyntax(
+                text.trimmingCharacters(in: .whitespacesAndNewlines), source: segment.source)
             segment.translation = clean
             guard !clean.isEmpty else {
                 segment.status = .dropped("整段没有译文")
