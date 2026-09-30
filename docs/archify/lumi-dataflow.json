@@ -1,0 +1,326 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Lumi 取词与翻译数据流",
+    "locale": "zh-CN",
+    "output": "docs/lumi-dataflow.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      600
+    ],
+    "views": [
+      {
+        "id": "panel-lookup",
+        "label": "面板取词",
+        "focus": [
+          "hotkey",
+          "grabber",
+          "state",
+          "provider",
+          "cards"
+        ],
+        "note": "⌥D 取选中文本，扇出到全部服务，结果卡流式呈现。"
+      },
+      {
+        "id": "document-path",
+        "label": "文档与网页",
+        "focus": [
+          "doc",
+          "segmenter",
+          "workbench",
+          "store",
+          "safari",
+          "bridge",
+          "translator"
+        ],
+        "note": "本机文档与网页段落都切成任务交给同一套引擎，译文落盘不重复付费。"
+      },
+      {
+        "id": "etymology-path",
+        "label": "词源旁路",
+        "focus": [
+          "state",
+          "wiktionary",
+          "cards"
+        ],
+        "note": "英文单词额外取一次词源，作为卡片上的一行。"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "label": "触发"
+    },
+    {
+      "label": "取词 · 导入"
+    },
+    {
+      "label": "分段 · 调度"
+    },
+    {
+      "label": "引擎 · 传输"
+    },
+    {
+      "label": "呈现 · 落盘"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "hotkey",
+      "type": "backend",
+      "label": "HotKeyCenter",
+      "sublabel": "Carbon 热键",
+      "tag": "⌥D ⌥A ⌥S",
+      "stage": 0,
+      "row": 0
+    },
+    {
+      "id": "grabber",
+      "type": "backend",
+      "label": "TextGrabber",
+      "sublabel": "AX → ⌘C 兜底",
+      "tag": "区域 OCR · 0.7s",
+      "stage": 1,
+      "row": 0
+    },
+    {
+      "id": "state",
+      "type": "backend",
+      "label": "AppState",
+      "sublabel": "并发扇出",
+      "tag": "焦点 / 回退",
+      "stage": 2,
+      "row": 0
+    },
+    {
+      "id": "wiktionary",
+      "type": "backend",
+      "label": "EtymologyStore",
+      "sublabel": "Wiktionary 抓取",
+      "tag": "词源页",
+      "stage": 3,
+      "row": 0
+    },
+    {
+      "id": "provider",
+      "type": "backend",
+      "label": "TranslationProvider",
+      "sublabel": "15 个服务 · 8 个实现",
+      "tag": "Prompts + SSE",
+      "stage": 3,
+      "row": 1
+    },
+    {
+      "id": "cards",
+      "type": "frontend",
+      "label": "结果卡",
+      "sublabel": "流式增量渲染",
+      "tag": "RootView",
+      "stage": 4,
+      "row": 1
+    },
+    {
+      "id": "doc",
+      "type": "frontend",
+      "label": "文档导入",
+      "sublabel": "粘贴 / 拖入",
+      "tag": "指纹去重",
+      "stage": 1,
+      "row": 2
+    },
+    {
+      "id": "segmenter",
+      "type": "backend",
+      "label": "Segmenter",
+      "sublabel": "按块切分",
+      "tag": "识别语言",
+      "stage": 2,
+      "row": 2
+    },
+    {
+      "id": "workbench",
+      "type": "backend",
+      "label": "WorkbenchEngine",
+      "sublabel": "在线 / 离线",
+      "tag": "逐段任务",
+      "stage": 3,
+      "row": 2
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "DocumentStore",
+      "sublabel": "译文落盘",
+      "tag": "不重复付费",
+      "stage": 4,
+      "row": 2
+    },
+    {
+      "id": "safari",
+      "type": "external",
+      "label": "Safari 扩展",
+      "sublabel": "content script",
+      "tag": "POST /translate",
+      "stage": 0,
+      "row": 3,
+      "yOffset": -20
+    },
+    {
+      "id": "bridge",
+      "type": "frontend",
+      "label": "PageBridge",
+      "sublabel": "127.0.0.1:47121",
+      "tag": "仅回环",
+      "stage": 1,
+      "row": 3,
+      "yOffset": -20
+    },
+    {
+      "id": "translator",
+      "type": "backend",
+      "label": "PageTranslator",
+      "sublabel": "批次 → 分段任务",
+      "tag": "90s 期限",
+      "stage": 2,
+      "row": 3,
+      "yOffset": -20
+    }
+  ],
+  "flows": [
+    {
+      "from": "hotkey",
+      "to": "grabber",
+      "label": "选中文本",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "grabber",
+      "to": "state",
+      "label": "文本 + 来源",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "state",
+      "to": "provider",
+      "label": "并发扇出",
+      "variant": "emphasis",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [
+        [
+          530,
+          271
+        ]
+      ]
+    },
+    {
+      "from": "provider",
+      "to": "cards",
+      "label": "流式事件",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "state",
+      "to": "wiktionary",
+      "label": "查词请求",
+      "route": "straight"
+    },
+    {
+      "from": "wiktionary",
+      "to": "cards",
+      "label": "词源一行",
+      "toSide": "top",
+      "via": [
+        [
+          960,
+          157
+        ]
+      ]
+    },
+    {
+      "from": "doc",
+      "to": "segmenter",
+      "label": "原始文本",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "segmenter",
+      "to": "workbench",
+      "label": "分段任务",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "workbench",
+      "to": "store",
+      "label": "译文落盘",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "safari",
+      "to": "bridge",
+      "label": "段落批次",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "from": "bridge",
+      "to": "translator",
+      "label": "解析请求",
+      "route": "straight"
+    },
+    {
+      "from": "translator",
+      "to": "workbench",
+      "label": "段落作业",
+      "toSide": "bottom",
+      "via": [
+        [
+          745,
+          479
+        ]
+      ]
+    },
+    {
+      "from": "workbench",
+      "to": "provider",
+      "label": "按段调用"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "取词侧",
+      "items": [
+        "AX 取词 0.25s 消息超时、0.7s 总超时，失败后走 ⌘C 兜底",
+        "截图取词走 Vision：用户取消就静默返回，识别为空或失败时在面板上说明原因",
+        "取词结果先检测语言（决定翻译方向），再按长度与词数决定是否按查词处理"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "引擎侧",
+      "items": [
+        "8 个实现共用 AsyncThrowingStream，逐服务上报增量、整体替换或结构化词条",
+        "DocumentContext 只在能用的引擎上启用，离线引擎灰掉而不是假装能用",
+        "网页段落和本机文档走同一套引擎，译文按指纹落盘复用"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "结果侧",
+      "items": [
+        "焦点先落在队列最上面的服务；10 秒宽限期内提升到第一个有内容的服务，之后锁定",
+        "回退提示只在更高优先级的服务确实失败后才出现",
+        "条目为空的词典按「没有意见」呈现，不算错误，也不触发回退"
+      ]
+    }
+  ]
+}

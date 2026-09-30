@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "docs/archify/lumi-architecture.json",
+  "output": "docs/lumi-architecture.html",
+  "specification": {
+    "sha256": "ae2731566eb0037617c0aa24fef5c96a0180c245ee2164d26c94a1977a265fe3",
+    "bytes": 7375
+  },
+  "artifact": {
+    "sha256": "1f6ed9b8d122ae45a0bf0031062b2224c919160b44aadf33173c8f754d0840dc",
+    "bytes": 814768
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

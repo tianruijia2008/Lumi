@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How Transformers Learn to Attend</title>
+  <link rel="stylesheet" href="/ext/content.css">
+  <style>
+    body { margin: 0; font: 17px/1.6 Georgia, serif; color: #222; background: #fff; }
+    .bar { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; align-items: center; padding: 8px 16px;
+           background: #f3f3f6; border-bottom: 1px solid #ddd; font: 13px -apple-system, sans-serif; }
+    .bar select, .bar button { font: inherit; }
+    header.site nav { display: flex; gap: 18px; padding: 12px 24px; font: 15px -apple-system, sans-serif; }
+    header.site nav a { color: #444; text-decoration: none; }
+    .tags { display: flex; gap: 8px; padding: 0 24px; font: 13px -apple-system, sans-serif; }
+    .tags span { background: #eef; padding: 2px 8px; border-radius: 10px; }
+    article { max-width: 680px; margin: 0 auto; padding: 8px 24px 120px; }
+    pre { background: #f6f6f8; padding: 12px; border-radius: 6px; font-size: 14px; }
+    blockquote { border-left: 3px solid #ccc; margin-left: 0; padding-left: 16px; color: #555; }
+    table { border-collapse: collapse; font: 15px -apple-system, sans-serif; }
+    td, th { border: 1px solid #ddd; padding: 6px 10px; }
+    @media (prefers-color-scheme: dark) { body { background: #16161a; color: #ddd; } pre { background: #222; } .bar { background: #222; border-color: #333; } }
+  </style>
+</head>
+<body>
+  <div class="bar notranslate" translate="no">
+    <b>Harness</b>
+    <label>engine <select id="h-engine"><option>auto</option><option>online</option><option>offline</option><option>google</option></select></label>
+    <label>style <select id="h-style"><option>pane</option><option>clear</option><option>frost</option><option>replace</option></select></label>
+    <button id="h-toggle">toggle (⌥T)</button>
+    <span id="h-state"></span>
+  </div>
+
+  <header class="site">
+    <nav><a href="#">Home</a><a href="#">Articles</a><a href="#">About</a></nav>
+    <div class="tags"><span>machine learning</span><span>deep dive</span></div>
+  </header>
+
+  <article>
+    <h1>How Transformers Learn to Attend</h1>
+    <p>The Transformer dispenses with recurrence entirely, relying on <a href="#">attention</a> to draw global dependencies between input and output. This allows for significantly more parallelization than recurrent networks.</p>
+    <p>In practice, each layer computes <code>softmax(QKᵀ/√d)V</code> for every head. The scaling factor keeps the dot products from growing so large that the softmax saturates, which would leave the gradients vanishingly small.</p>
+
+    <h2>Why it works</h2>
+    <p>The latter point matters more than it first appears. Without it, training diverges within the first few hundred steps on most configurations we tried.</p>
+    <blockquote>“Attention is not explanation” — but it is a surprisingly good place to start looking.</blockquote>
+
+    <pre><code>def attention(q, k, v):
+    scores = q @ k.T / math.sqrt(q.shape[-1])
+    return softmax(scores) @ v</code></pre>
+
+    <ul>
+      <li>Multi-head attention lets the model attend to information from different representation subspaces.
+        <ul>
+          <li>Each head has its own projection matrices.</li>
+          <li>Heads are concatenated and projected once more.</li>
+        </ul>
+      </li>
+      <li>Positional encodings inject order information, since attention itself is permutation-invariant.</li>
+    </ul>
+
+    <figure>
+      <div style="height:80px;background:#e9e9f2;border-radius:6px"></div>
+      <figcaption>Figure 1. Attention weights for the first layer, averaged across heads.</figcaption>
+    </figure>
+
+    <table>
+      <tr><th>Model</th><th>Parameters</th><th>Notes</th></tr>
+      <tr><td>Base</td><td>65M</td><td>Trained for twelve hours on eight GPUs</td></tr>
+      <tr><td>Big</td><td>213M</td><td>Three and a half days</td></tr>
+    </table>
+
+    <p>这一段本来就是中文，不应该被翻译，也不应该出现占位条。</p>
+    <p>Le modèle est entraîné sur des paires de phrases, puis évalué sur un jeu de test distinct.</p>
+
+    <div class="forum">Posted by a reader:<br>I tried this on my own dataset and the loss plateaued after two epochs. Any ideas?<div class="reply"><p>Try warming up the learning rate for the first few thousand steps.</p></div></div>
+
+    <h2>Further reading</h2>
+    <div id="tail"></div>
+  </article>
+
+  <script src="/shim.js"></script>
+  <script type="module" src="/ext/background.js"></script>
+  <script src="/ext/content.js"></script>
+  <script>
+    const store = globalThis.__harnessStore;
+    const set = (patch) => browser.storage.local.set(patch);
+    document.getElementById('h-engine').onchange = (e) => set({ engine: e.target.value });
+    document.getElementById('h-style').onchange = (e) => set({ style: e.target.value });
+    document.getElementById('h-toggle').onclick = () => __lumiTest.toggle();
+    const params = new URLSearchParams(location.search);
+    set({ target: params.get('target') || 'zh-Hans', engine: params.get('engine') || 'auto', style: params.get('style') || 'pane' });
+    document.getElementById('h-engine').value = params.get('engine') || 'auto';
+    document.getElementById('h-style').value = params.get('style') || 'pane';
+    setInterval(() => {
+      const p = __lumiTest.progress();
+      document.getElementById('h-state').textContent = `${p.settled}/${p.requested}`;
+    }, 300);
+    // A paragraph that arrives late, as on an infinite-scroll page.
+    setTimeout(() => {
+      const p = document.createElement('p');
+      p.textContent = 'This paragraph was added three seconds after load, the way a comment thread or an infinite feed would add it.';
+      document.querySelector('article h2').before(p);
+    }, 3000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<style>
+  /* Harness only: stands in for Safari's popover material, which the real
+     popup shows through its transparent background. */
+  html { background: linear-gradient(160deg, #eef0f6, #e4e6ee); }
+  @media (prefers-color-scheme: dark) { html { background: linear-gradient(160deg, #2c2d33, #232429); } }
+</style>
+<script>
+  // Popup harness: the real popup, the real background script (so the engine
+  // line reflects the running Lumi), and a fake tab with a page in progress.
+  (() => {
+    const runtime = [], store = { sites: { 'arxiv.org': { auto: true, notes: '' } } };
+    const realFetch = window.fetch.bind(window);
+    window.fetch = (url, init) => realFetch(String(url)
+      .replace('http://127.0.0.1:47121', '/bridge')
+      .replace('https://translate.googleapis.com', '/google'), init);
+    const params = new URLSearchParams(location.search);
+    let page = params.get('page') === 'none' ? null
+      : { host: 'arxiv.org', active: params.get('active') === '1', engine: 'DeepSeek',
+          requested: 18, settled: Number(params.get('settled') ?? 11), fault: params.get('fault') };
+    globalThis.browser = {
+      runtime: {
+        onMessage: { addListener: (fn) => runtime.push(fn) },
+        sendMessage: (message) => new Promise((resolve) => {
+          for (const fn of runtime) if (fn(message, {}, resolve) === true) return;
+          resolve(undefined);
+        }),
+      },
+      tabs: {
+        query: async () => [{ id: 1 }],
+        sendMessage: async (_id, message) => {
+          if (!page) throw new Error('no content script');
+          if (message.type === 'lumi:toggle') page.active = !page.active;
+          if (message.type === 'lumi:retry') page.fault = null;
+          return page;
+        },
+      },
+      storage: { local: {
+        get: async (defaults) => ({ ...defaults, ...store }),
+        set: async (patch) => Object.assign(store, patch),
+      } },
+    };
+  })();
+</script>
+<script type="module" src="/ext/background.js"></script>

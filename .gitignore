@@ -1,0 +1,36 @@
+# SwiftPM / 编译与打包产物 —— 都能由 ./build.sh 重新生成
+.build/
+build/
+*.dSYM/
+*.o
+*.swiftmodule
+*.swiftdoc
+*.dia
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+_CodeSignature/
+
+# 本机私有：签名身份（build.sh 会读，见该文件顶部注释）
+.lumi-identity
+
+# macOS
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Python（scripts/ 下的守卫脚本）
+__pycache__/
+*.py[cod]
+
+# 编辑器 / 工具
+.idea/
+*.iml
+.vscode/
+*.swp
+*~
+
+# 说明：docs/*.visual-check.* 是刻意入库的浏览器证据（截图 + receipt），
+# 不要忽略；它们由 STRUCTURE.md 第 7 节的 visual-check 命令重新生成。

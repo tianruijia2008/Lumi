@@ -1,0 +1,373 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Lumi 项目结构",
+    "locale": "zh-CN",
+    "output": "docs/lumi-architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1080,
+      590
+    ],
+    "views": [
+      {
+        "id": "capture-path",
+        "label": "取词主路径",
+        "focus": [
+          "user",
+          "hotkey",
+          "panel",
+          "appstate",
+          "provider",
+          "cards"
+        ],
+        "note": "快捷键进面板，提交查询后扇出到全部服务，结果卡流式呈现。"
+      },
+      {
+        "id": "page-path",
+        "label": "网页翻译路径",
+        "focus": [
+          "safari",
+          "bridge",
+          "workbench",
+          "provider"
+        ],
+        "note": "Safari 扩展经回环端口复用同一套文档引擎。"
+      },
+      {
+        "id": "shared-base",
+        "label": "共享底座",
+        "focus": [
+          "core",
+          "grabber",
+          "appstate",
+          "etymology"
+        ],
+        "note": "取词、设置与词源是主路径外的三条支线。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "用户",
+      "sublabel": "选中文本 / 区域",
+      "pos": [
+        40,
+        30
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "hotkey",
+      "type": "backend",
+      "label": "HotKeyCenter",
+      "sublabel": "Carbon 全局热键",
+      "tag": "⌥D ⌥A ⌥S ⌥W",
+      "pos": [
+        40,
+        159
+      ],
+      "size": [
+        140,
+        88
+      ]
+    },
+    {
+      "id": "panel",
+      "type": "backend",
+      "label": "PanelController",
+      "sublabel": "NSPanel · 玻璃面板",
+      "pos": [
+        245,
+        159
+      ],
+      "size": [
+        140,
+        88
+      ]
+    },
+    {
+      "id": "grabber",
+      "type": "backend",
+      "label": "TextGrabber",
+      "sublabel": "AX / ⌘C · 区域 OCR",
+      "tag": "0.7s 超时",
+      "pos": [
+        245,
+        323
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "appstate",
+      "type": "backend",
+      "label": "AppState",
+      "sublabel": "扇出 · 焦点回退",
+      "tag": "@Observable",
+      "pos": [
+        450,
+        159
+      ],
+      "size": [
+        140,
+        88
+      ]
+    },
+    {
+      "id": "core",
+      "type": "database",
+      "label": "Core 基础服务",
+      "sublabel": "设置 · 密钥 · 超时",
+      "tag": "19 个文件依赖",
+      "pos": [
+        450,
+        323
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "provider",
+      "type": "backend",
+      "label": "TranslationProvider",
+      "sublabel": "15 个服务 · 8 个实现",
+      "tag": "AsyncThrowingStream",
+      "pos": [
+        655,
+        159
+      ],
+      "size": [
+        140,
+        88
+      ]
+    },
+    {
+      "id": "etymology",
+      "type": "backend",
+      "label": "EtymologyStore",
+      "sublabel": "词源抓取 + 解析",
+      "tag": "Wiktionary",
+      "pos": [
+        860,
+        30
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "cards",
+      "type": "frontend",
+      "label": "结果卡 UI",
+      "sublabel": "RootView · GlassPanel",
+      "pos": [
+        860,
+        159
+      ],
+      "size": [
+        140,
+        88
+      ]
+    },
+    {
+      "id": "safari",
+      "type": "external",
+      "label": "Safari 扩展",
+      "sublabel": "WebExtension + appex",
+      "pos": [
+        40,
+        470
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "bridge",
+      "type": "frontend",
+      "label": "PageBridge",
+      "sublabel": "127.0.0.1:47121",
+      "tag": "仅回环请求",
+      "pos": [
+        245,
+        470
+      ],
+      "size": [
+        140,
+        86
+      ]
+    },
+    {
+      "id": "workbench",
+      "type": "backend",
+      "label": "WorkbenchEngine",
+      "sublabel": "在线 / 离线引擎",
+      "tag": "逐段任务",
+      "pos": [
+        655,
+        470
+      ],
+      "size": [
+        140,
+        86
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "user-hotkey",
+      "from": "user",
+      "to": "hotkey",
+      "label": "按键触发",
+      "labelAt": [
+        110,
+        137
+      ]
+    },
+    {
+      "id": "hotkey-panel",
+      "from": "hotkey",
+      "to": "panel",
+      "label": "派发动作",
+      "variant": "emphasis"
+    },
+    {
+      "id": "panel-appstate",
+      "from": "panel",
+      "to": "appstate",
+      "label": "提交查询",
+      "variant": "emphasis"
+    },
+    {
+      "id": "panel-grabber",
+      "from": "panel",
+      "to": "grabber",
+      "label": "取词 / OCR",
+      "labelAt": [
+        315,
+        285
+      ]
+    },
+    {
+      "id": "appstate-provider",
+      "from": "appstate",
+      "to": "provider",
+      "label": "并发扇出",
+      "variant": "emphasis"
+    },
+    {
+      "id": "provider-cards",
+      "from": "provider",
+      "to": "cards",
+      "label": "流式增量",
+      "variant": "emphasis"
+    },
+    {
+      "id": "appstate-core",
+      "from": "appstate",
+      "to": "core",
+      "label": "读取设置",
+      "labelAt": [
+        520,
+        285
+      ]
+    },
+    {
+      "id": "appstate-etymology",
+      "from": "appstate",
+      "to": "etymology",
+      "label": "英文单词查词",
+      "fromSide": "top",
+      "toSide": "left",
+      "via": [
+        [
+          520,
+          73
+        ],
+        [
+          860,
+          73
+        ]
+      ],
+      "labelAt": [
+        690,
+        51
+      ]
+    },
+    {
+      "id": "etymology-cards",
+      "from": "etymology",
+      "to": "cards",
+      "label": "词源一行",
+      "labelAt": [
+        930,
+        137
+      ]
+    },
+    {
+      "id": "safari-bridge",
+      "from": "safari",
+      "to": "bridge",
+      "label": "批量段落",
+      "variant": "emphasis"
+    },
+    {
+      "id": "bridge-workbench",
+      "from": "bridge",
+      "to": "workbench",
+      "label": "复用引擎"
+    },
+    {
+      "id": "workbench-provider",
+      "from": "workbench",
+      "to": "provider",
+      "label": "按段调用",
+      "labelAt": [
+        725,
+        435
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "取词入口",
+      "items": [
+        "⌥D / ⌥A / ⌥S 交给 PanelController，⌥W 直接开工作台",
+        "AX 取词 0.25s 消息超时 + 0.7s 总超时，卡死的 App 不会拖垮界面",
+        "Safari 扩展只能走 127.0.0.1:47121，它读不到 Lumi 的钥匙串"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "两个接缝",
+      "items": [
+        "TranslationProvider：8 个实现共用一条 AsyncThrowingStream 事件流",
+        "WorkbenchEngine：在线走 Provider，离线走系统翻译，二者不可互换",
+        "PageBridge 与面板共用同一套引擎，改一处两边同时受益"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "共享底座",
+      "items": [
+        "9 个源码模块在同一个 SwiftPM target 内，零第三方依赖",
+        "AppSettings 是耦合最广的类型：19 个文件依赖它",
+        "Claude / Gemini / DeepL / OpenAI 兼容四个 Provider 才读 Keychain"
+      ]
+    }
+  ]
+}
