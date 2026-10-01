@@ -11,7 +11,7 @@ chmod +x "$root/.githooks/pre-commit" "$root/.githooks/pre-push" 2>/dev/null || 
 
 echo "▸ 已启用 pre-commit 钩子（core.hooksPath=.githooks）"
 echo "  它会在每次 git commit 前扫描 staged 内容里的密钥 / 个人信息。"
-echo "  另外 pre-push 只允许把 main 与 tag 推到发布仓库（origin），"
-echo "  存档仓库（vault）不接受直接推送，同步请用：scripts/sync-vault.sh"
+echo "  另外 pre-push 会拒绝直接推送公开仓库（public = tianruijia2008/Lumi），"
+echo "  同步公开仓库请用：scripts/sync-public.sh；私有仓库 origin 照常 git push"
 echo "  临时绕过：git commit --no-verify    关闭：git config --unset core.hooksPath"
 echo "  完整检查（含文档漂移）：python3 scripts/security-scan.py"

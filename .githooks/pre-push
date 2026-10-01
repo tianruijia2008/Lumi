@@ -1,61 +1,43 @@
 #!/bin/sh
-# 只允许把「发布线」推到**发布仓库**，防止开发历史被误推出去。
+# 拦住对**公开仓库**的直接推送，防止只该留在私有仓库的内容被推出去。
 #
-# 为什么需要它：仓库里有两条没有共同祖先的历史——
-#   main               压平后的发布线（对外）
-#   backup/pre-public  未压平的开发历史（存档用）
-# 一旦 backup/* 被推到发布仓库，两条无关的历史就混在了一起，发布线不再是
-# 干净的一条；别人 fetch 过之后也收不回来。`git push --all`、`git push --mirror`、
+# 为什么需要它：两个远端装的不是同一份历史——
+#   origin = Lumi-dev（私有）  本地历史原样备份：main、backup/pre-public、tag，什么都收
+#   public = Lumi    （公开）  由 scripts/sync-public.sh 生成：整段历史去掉了
+#                              AGENTS.md / CLAUDE.md，提交哈希和本地不同
+# 直接 `git push public` 会把这两个文件连同本地历史一起带进公开仓库，而且推出去
+# 就收不回来（别人 fetch 走的拿不回来）。`git push --all`、`git push --mirror`、
 # 图形客户端的“推送所有分支”都会造成这种事故，而它们看起来都很无害。
 #
-# 规则：
-#   URL 含 Lumi-history  → 存档仓库（同样公开）：一律拒绝直接推送。它的历史去掉了
-#                          AGENTS.md / CLAUDE.md、哈希和本地不同，只能由
-#                          scripts/sync-vault.sh 重新生成后推送（脚本从临时克隆推，
-#                          不经过这个钩子）
-#   URL 含 <发布仓库标识> → 只允许 refs/heads/main 与 refs/tags/*，且拒绝删除 main
-#   其它（fork、自建远端）→ 放行：贡献者在自己的 fork 上推特性分支必须照常可用
+# 规则（按 URL 判断，不看远端名）：
+#   …/Lumi-dev                → 私有仓库，放行
+#   …/Lumi、…/Lumi-history    → 公开仓库（后者是改名前的旧地址，GitHub 会重定向过去）：
+#                               一律拒绝。sync-public.sh 从临时克隆推送，不经过这个钩子
+#   其它（fork、自建远端）     → 放行：贡献者在自己的 fork 上推特性分支必须照常可用
 #
 # 确实需要绕过：git push --no-verify
-# 存档同步：    scripts/sync-vault.sh
+# 同步公开仓库：scripts/sync-public.sh
 
 remote_name="$1"
 remote_url="$2"
 
-vault_marker="Lumi-history"           # 存档仓库（见 STRUCTURE.md 第 8 节）
-publish_marker="tianruijia2008/Lumi"  # 发布仓库；vault 的 URL 也含这段，所以先判 vault
+dev_repo="tianruijia2008/Lumi-dev"        # 私有仓库（见 STRUCTURE.md 第 8 节）
+public_repo="tianruijia2008/Lumi"        # 公开仓库
+legacy_repo="tianruijia2008/Lumi-history" # 公开仓库改名前的地址
 
-case "$remote_url" in
-    *"$vault_marker"*)                # 存档仓库：只接受 sync-vault.sh 的推送
-        echo "✗ 存档仓库「${remote_name}」不接受直接推送：它的历史是过滤后重新生成的" >&2
-        echo "  （去掉了 AGENTS.md / CLAUDE.md），直接推会把这两个文件带回公开仓库。" >&2
-        echo "  请用：scripts/sync-vault.sh" >&2
+# 去掉结尾的 / 与 .git，再按结尾精确匹配——Lumi 是 Lumi-dev 的前缀，不能用“包含”判断
+url="${remote_url%/}"
+url="${url%.git}"
+
+case "$url" in
+    *"/$dev_repo" | *":$dev_repo")
+        exit 0 ;;
+    *"/$public_repo" | *":$public_repo" | *"/$legacy_repo" | *":$legacy_repo")
+        echo "✗ 公开仓库「${remote_name}」（${remote_url}）不接受直接推送：" >&2
+        echo "  它的历史是过滤后重新生成的（去掉了 AGENTS.md / CLAUDE.md），" >&2
+        echo "  直接推会把这两个文件带进公开仓库。" >&2
+        echo "  请用：scripts/sync-public.sh" >&2
         exit 1 ;;
-    *"$publish_marker"*) ;;           # 发布仓库：走下面的规则
-    *)                   exit 0 ;;    # fork / 其它远端：不干涉
+    *)
+        exit 0 ;;
 esac
-
-status=0
-while read -r local_ref local_sha remote_ref remote_sha; do
-    [ -n "${remote_ref:-}" ] || continue
-    case "$remote_ref" in
-        refs/heads/main)
-            case "$local_sha" in
-                0000000000000000000000000000000000000000)
-                    echo "✗ 拒绝删除发布仓库「${remote_name}」上的 main" >&2
-                    status=1
-                    ;;
-            esac
-            ;;
-        refs/tags/*) ;;               # 发布标签放行
-        *)
-            echo "✗ 拒绝推送 ${remote_ref} 到发布仓库「${remote_name}」（${remote_url}）" >&2
-            echo "  这个仓库只接受 main 与 tag——开发历史不该出现在这里。" >&2
-            echo "  存档请用：scripts/sync-vault.sh" >&2
-            echo "  在自己的 fork 上推分支不受影响。确实要绕过：git push --no-verify" >&2
-            status=1
-            ;;
-    esac
-done
-
-exit $status
