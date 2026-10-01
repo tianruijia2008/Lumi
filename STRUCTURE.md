@@ -54,11 +54,10 @@ Lumi/
 ├── .githooks/pre-push             # 只允许把 main / tag 推到发布仓库，拒绝直接推存档
 ├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档 / 契约四道闸门
 ├── README.md                      # 给使用者：功能、截图、安装、隐私
+├── README.en.md                   # README 的英文版（只在存档里）
 ├── TECHSHEET.md                   # 技术说明：设计取向、实现细节、自测入口
 ├── CONTRIBUTING.md                # 提 issue / PR 的约定与贡献授权
 ├── LICENSE                        # GPL-3.0
-├── AGENTS.md                      # 给 AI 代理的约定（红线 / 检查 / 改图流程）
-├── CLAUDE.md                      # Claude Code 入口，@ 导入 AGENTS.md（约定只有一份）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
 │   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs / invariants 四阶段）

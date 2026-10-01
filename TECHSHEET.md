@@ -1,7 +1,7 @@
 # Lumi 技术说明
 
 写给想读代码、改代码的人。功能介绍和安装步骤在 [`README.md`](README.md)；模块地图、两张可交互图、
-仓库守卫在 [`STRUCTURE.md`](STRUCTURE.md)；给 AI 代理的约定在 [`AGENTS.md`](AGENTS.md)。
+仓库守卫在 [`STRUCTURE.md`](STRUCTURE.md)。
 
 这里记的是**为什么这样做**：每一条设计取向背后，基本都有一次实测或一次踩坑。
 

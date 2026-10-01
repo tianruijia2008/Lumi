@@ -27,8 +27,7 @@
 4. 改了 `Sources/Lumi/` 的文件数量或行数，要同步 `STRUCTURE.md` 第 3 节，否则守卫会报文档漂移。
 5. 不要引入第三方依赖，`Package.swift` 保持没有 `dependencies`。
 
-实现细节和设计取向见 [`TECHSHEET.md`](TECHSHEET.md)，结构说明见 [`STRUCTURE.md`](STRUCTURE.md)，
-更多会踩坑的约定见 [`AGENTS.md`](AGENTS.md)。
+实现细节和设计取向见 [`TECHSHEET.md`](TECHSHEET.md)，结构说明见 [`STRUCTURE.md`](STRUCTURE.md)。
 
 ## 贡献的授权
 
