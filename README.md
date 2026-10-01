@@ -1,5 +1,7 @@
 # Lumi
 
+[English](README.en.md) · **简体中文**
+
 一个原生的 macOS 翻译工具：选中文字就能查词、翻译，长文章可以逐段对照着读，别人的译文可以拿来校对，
 Safari 里的网页可以双语对照。受 [Easydict](https://github.com/tisfeng/Easydict) 启发，代码从零写起。
 

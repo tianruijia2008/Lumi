@@ -366,7 +366,7 @@ def scan_hygiene(root: Path, files: list[str]) -> list[Finding]:
 
 
 # 文档类文件：链接都要有效（新增一份文档就加进来，别让它变成第二个漂移源）。
-DOC_FILES = ("STRUCTURE.md", "README.md", "TECHSHEET.md", "AGENTS.md",
+DOC_FILES = ("STRUCTURE.md", "README.md", "README.en.md", "TECHSHEET.md", "AGENTS.md",
              "CONTRIBUTING.md", "CLAUDE.md")
 # Claude Code 的记忆文件用 `@路径` 导入别的文件（如 CLAUDE.md -> @AGENTS.md）。
 # 这种导入没有 markdown 链接语法，所以要单独查目标是否存在。
