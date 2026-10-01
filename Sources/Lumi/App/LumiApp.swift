@@ -196,10 +196,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 // The Settings scene is not registered yet at launch time, and
                 // the selector was renamed between releases — try both.
+                //
+                // 已知限制（macOS 27 实测）：`sendAction` 返回 true，但 Lumi 是 LSUIElement，
+                // 后台启动时 `activate()` 不会真的把它激活（实测 active=false、windows=0），
+                // 于是设置窗口不出现——`LUMI_WINDOW_SHOT` 也就拍不到它。下面重试并写日志，
+                // 让这件事有据可查，而不是"截图没生成，不知道为什么"。
+                // 要拍设置界面，目前只能由人打开设置后自己截屏。
                 try? await Task.sleep(for: .seconds(1))
-                NSApp.activate()
-                for name in ["showSettingsWindow:", "showPreferencesWindow:"] {
-                    if NSApp.sendAction(Selector((name)), to: nil, from: nil) { break }
+                for attempt in 1...4 {
+                    // LSUIElement（后台 agent）默认是 .accessory：activate() 不会真的把它激活，
+                    // 于是设置窗口永远不出现（实测 selector 返回 true，但 active=false、windows=0）。
+                    // 工作台能弹出来，正是因为它先把 policy 提到 .regular —— 这里照做。
+                    NSApp.setActivationPolicy(.regular)
+                    NSApp.activate()
+                    var handled = ""
+                    for name in ["showSettingsWindow:", "showPreferencesWindow:"]
+                    where NSApp.sendAction(Selector((name)), to: nil, from: nil) {
+                        handled = name
+                        break
+                    }
+                    try? await Task.sleep(for: .seconds(1))
+                    let visible = NSApp.windows.filter { $0.isVisible && $0.frame.width > 300 }
+                    Log.window.info("""
+                        open settings: attempt=\(attempt, privacy: .public) \
+                        selector=\(handled.isEmpty ? "none" : handled, privacy: .public) \
+                        active=\(NSApp.isActive, privacy: .public) \
+                        windows=\(visible.count, privacy: .public)
+                        """)
+                    if !visible.isEmpty { break }
                 }
             }
         }
@@ -255,22 +279,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 private struct MenuContent: View {
     var body: some View {
-        Button("翻译选中文本  \(AppSettings.shared.hotKey(for: .translateSelection).displayString)") {
+        Button(t("翻译选中文本  %@", AppSettings.shared.hotKey(for: .translateSelection).displayString)) {
             PanelController.shared.translateSelection()
         }
-        Button("打开输入框  \(AppSettings.shared.hotKey(for: .showInput).displayString)") {
+        Button(t("打开输入框  %@", AppSettings.shared.hotKey(for: .showInput).displayString)) {
             PanelController.shared.showInput()
         }
-        Button("截图翻译  \(AppSettings.shared.hotKey(for: .captureScreen).displayString)") {
+        Button(t("截图翻译  %@", AppSettings.shared.hotKey(for: .captureScreen).displayString)) {
             PanelController.shared.translateScreenRegion()
         }
         Divider()
-        Button("工作台  \(AppSettings.shared.hotKey(for: .showWorkbench).displayString)") {
+        Button(t("工作台  %@", AppSettings.shared.hotKey(for: .showWorkbench).displayString)) {
             WorkbenchController.shared.show()
         }
         Divider()
-        SettingsLink { Text("设置…") }
+        SettingsLink { Text(t("设置…")) }
         Divider()
-        Button("退出 Lumi") { NSApp.terminate(nil) }
+        Button(t("退出 Lumi")) { NSApp.terminate(nil) }
     }
 }

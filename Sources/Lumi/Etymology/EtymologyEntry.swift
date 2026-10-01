@@ -75,14 +75,30 @@ struct EtymologyEntry: Codable, Sendable, Equatable {
     }
 
     /// When the word is first dated in English, as "14 世纪".
+    @MainActor
     var firstCentury: String? {
         guard let start = senses.compactMap(\.start).min() else { return nil }
-        return "\(start / 100 + 1) 世纪"
+        let century = start / 100 + 1
+        if Localization.shared.language == .en { return "\(century)\(Self.ordinalSuffix(century)) century" }
+        return "\(century) 世纪"
     }
 
+    /// English ordinal suffix (21st, not 21th). `String(format:)` cannot make
+    /// ordinals, so this one label is handled here rather than in the table.
+    private static func ordinalSuffix(_ n: Int) -> String {
+        switch n % 100 { case 11, 12, 13: return "th"; default: break }
+        switch n % 10 { case 1: return "st"; case 2: return "nd"; case 3: return "rd"; default: return "th" }
+    }
+
+    @MainActor
     var partOfSpeechLocal: String? {
         guard let partOfSpeech else { return nil }
-        return Self.partsOfSpeech[partOfSpeech] ?? partOfSpeech.lowercased()
+        // 词性名是"维基给的英文 token → 本地名称"的映射，不是句子文案，
+        // 所以按界面语言选一张表（与 LanguageNames 同一个做法），
+        // 而不是走 t() 的句子表——那样 key 是变量，守卫看不见、也查不出漏译。
+        let table = Localization.shared.language == .en ? Self.partsOfSpeechEnglish
+                                                        : Self.partsOfSpeechChinese
+        return table[partOfSpeech] ?? partOfSpeech.lowercased()
     }
 
     /// Senses no longer in ordinary use, against the whole list.
@@ -93,12 +109,24 @@ struct EtymologyEntry: Codable, Sendable, Equatable {
         return first.count > limit ? String(first.prefix(limit)) + "…" : first
     }
 
-    private static let partsOfSpeech = [
+    /// 维基词典用的英文词性 token → 中文名。**不要**把这张表并进 `t()` 的句子表。
+    private static let partsOfSpeechChinese = [
         "Adjective": "形容词", "Noun": "名词", "Verb": "动词", "Adverb": "副词",
         "Pronoun": "代词", "Preposition": "介词", "Conjunction": "连词", "Interjection": "感叹词",
         "Determiner": "限定词", "Numeral": "数词", "Proper noun": "专有名词",
         "Prefix": "前缀", "Suffix": "后缀", "Phrase": "短语",
     ]
+
+    /// 同一批 token 的英文名。小写，因为词源页里它跟在词头后面（"serendipity — noun"）。
+    private static let partsOfSpeechEnglish = [
+        "Adjective": "adjective", "Noun": "noun", "Verb": "verb", "Adverb": "adverb",
+        "Pronoun": "pronoun", "Preposition": "preposition", "Conjunction": "conjunction",
+        "Interjection": "interjection", "Determiner": "determiner", "Numeral": "numeral",
+        "Proper noun": "proper noun", "Prefix": "prefix", "Suffix": "suffix", "Phrase": "phrase",
+    ]
+
+    /// 中文名表里用到的那批 key（供人对照；真正的查表在 `partOfSpeechLocal`）。
+    static let partsOfSpeechKeys = partsOfSpeechChinese.values.sorted()
 }
 
 struct EtymNode: Codable, Sendable, Equatable, Identifiable {
@@ -115,7 +143,7 @@ struct EtymNode: Codable, Sendable, Equatable, Identifiable {
     var isToday = false
 
     var isReconstructed: Bool { form.hasPrefix("*") || LanguageNames.isProto(lang) }
-    var language: String { LanguageNames.name(lang) }
+    @MainActor var language: String { LanguageNames.name(lang) }
     var shownGloss: String? { glossLocal ?? gloss }
 }
 
@@ -137,11 +165,12 @@ struct FolkClaim: Codable, Sendable, Equatable {
 enum SenseStatus: String, Codable, Sendable {
     case alive, fading, dead
 
+    @MainActor
     var label: String {
         switch self {
-        case .alive:  "还在用"
-        case .fading: "渐少"
-        case .dead:   "已不用"
+        case .alive:  t("还在用")
+        case .fading: t("渐少")
+        case .dead:   t("已不用")
         }
     }
 }

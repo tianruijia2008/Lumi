@@ -18,8 +18,8 @@ struct OnlineWorkbenchEngine: WorkbenchEngine {
     let provider: (any TranslationProvider)?
 
     let id = WorkbenchEngineID.online
-    var displayName: String { provider?.displayName ?? "联网模型" }
-    let detail = "读得到标题、术语表和上下段，术语前后一致。需要联网。"
+    var displayName: String { provider?.displayName ?? tDetached("联网模型") }
+    var detail: String { tDetached("读得到标题、术语表和上下段，术语前后一致。需要联网。") }
     var requiresNetwork: Bool { provider?.requiresNetwork ?? true }
     let usesDocumentContext = true
 
@@ -33,10 +33,10 @@ struct OnlineWorkbenchEngine: WorkbenchEngine {
 
     func availability(source: Language, target: Language) async -> ProviderAvailability {
         guard let provider else {
-            return .needsSetup("还没有启用语言模型。在设置里开启一个（如 DeepSeek）并填好 API Key，或改用本机翻译。")
+            return .needsSetup(tDetached("还没有启用语言模型。在设置里开启一个（如 DeepSeek）并填好 API Key，或改用本机翻译。"))
         }
         let online = await MainActor.run { NetworkMonitor.shared.isOnline }
-        if provider.requiresNetwork, !online { return .unavailable("当前离线") }
+        if provider.requiresNetwork, !online { return .unavailable(tDetached("当前离线")) }
         // Availability is per-service configuration, not per-text, so any
         // request of the right shape answers the question.
         return await provider.availability(
@@ -52,7 +52,7 @@ struct OnlineWorkbenchEngine: WorkbenchEngine {
         AsyncStream { continuation in
             guard let provider else {
                 for job in jobs {
-                    continuation.yield(.failed(index: job.index, message: "未配置语言模型"))
+                    continuation.yield(.failed(index: job.index, message: tDetached("未配置语言模型")))
                 }
                 continuation.finish()
                 return
@@ -107,7 +107,7 @@ struct OnlineWorkbenchEngine: WorkbenchEngine {
             }
             return .finished(index: job.index, text: text)
         } catch is CancellationError {
-            return .failed(index: job.index, message: "已取消")
+            return .failed(index: job.index, message: tDetached("已取消"))
         } catch {
             // Whatever arrived before the failure is still worth showing: a
             // stream that died three sentences in leaves three usable

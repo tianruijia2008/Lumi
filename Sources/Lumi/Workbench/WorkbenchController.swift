@@ -131,7 +131,7 @@ final class WorkbenchController: NSObject, NSWindowDelegate {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = Self.readableTypes
         panel.allowsMultipleSelection = false
-        panel.message = "选一个文本文件（.txt、.md）"
+        panel.message = t("选一个文本文件（.txt、.md）")
         panel.beginSheetModal(for: window) { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
             MainActor.assumeIsolated {
@@ -169,7 +169,7 @@ final class WorkbenchController: NSObject, NSWindowDelegate {
         let markdown = document.format == .markdown
         panel.allowedContentTypes = markdown ? Self.readableTypes.reversed() : [.plainText]
         let base = document.title.replacingOccurrences(of: "/", with: "-").prefix(60)
-        panel.nameFieldStringValue = "\(base)（译文）.\(markdown ? "md" : "txt")"
+        panel.nameFieldStringValue = t("%@（译文）", String(base)) + ".\(markdown ? "md" : "txt")"
         let text = document.exportedTranslation
         panel.beginSheetModal(for: window) { response in
             guard response == .OK, let url = panel.url else { return }
@@ -215,7 +215,7 @@ final class WorkbenchController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        created.title = "工作台"
+        created.title = t("工作台")
         // Glass, like the panel: the window is not opaque and draws nothing of
         // its own, so the material the shell lays down is what shows — out to
         // the edges and under the title bar.
@@ -287,48 +287,75 @@ final class WorkbenchController: NSObject, NSWindowDelegate {
 
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "关于 Lumi",
+        appMenu.addItem(withTitle: t("关于 Lumi"),
                         action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
-        let settings = appMenu.addItem(withTitle: "设置…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = appMenu.addItem(withTitle: t("设置…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "隐藏 Lumi", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
-        appMenu.addItem(withTitle: "退出 Lumi", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: t("隐藏 Lumi"), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: t("退出 Lumi"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
         main.addItem(appItem)
 
         let fileItem = NSMenuItem()
-        let fileMenu = NSMenu(title: "文件")
-        let open = fileMenu.addItem(withTitle: "打开…", action: #selector(openFile(_:)), keyEquivalent: "o")
+        let fileMenu = NSMenu(title: t("文件"))
+        let open = fileMenu.addItem(withTitle: t("打开…"), action: #selector(openFile(_:)), keyEquivalent: "o")
         open.target = self
         fileMenu.addItem(.separator())
-        fileMenu.addItem(withTitle: "关闭窗口", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        fileMenu.addItem(withTitle: t("关闭窗口"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         fileItem.submenu = fileMenu
         main.addItem(fileItem)
 
         let editItem = NSMenuItem()
-        let editMenu = NSMenu(title: "编辑")
-        editMenu.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z")
-        let redo = editMenu.addItem(withTitle: "重做", action: Selector(("redo:")), keyEquivalent: "z")
+        let editMenu = NSMenu(title: t("编辑"))
+        editMenu.addItem(withTitle: t("撤销"), action: Selector(("undo:")), keyEquivalent: "z")
+        let redo = editMenu.addItem(withTitle: t("重做"), action: Selector(("redo:")), keyEquivalent: "z")
         redo.keyEquivalentModifierMask = [.command, .shift]
         editMenu.addItem(.separator())
-        editMenu.addItem(withTitle: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        editMenu.addItem(withTitle: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        editMenu.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        editMenu.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        editMenu.addItem(withTitle: t("剪切"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: t("拷贝"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: t("粘贴"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: t("全选"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = editMenu
         main.addItem(editItem)
 
         let windowItem = NSMenuItem()
-        let windowMenu = NSMenu(title: "窗口")
-        windowMenu.addItem(withTitle: "最小化", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
-        windowMenu.addItem(withTitle: "缩放", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        let windowMenu = NSMenu(title: t("窗口"))
+        windowMenu.addItem(withTitle: t("最小化"), action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: t("缩放"), action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
         windowItem.submenu = windowMenu
         main.addItem(windowItem)
 
         NSApp.mainMenu = main
         NSApp.windowsMenu = windowMenu
+        observeLanguage()
+    }
+
+    /// 界面语言变了就重建菜单栏。
+    ///
+    /// NSMenu 是 AppKit 对象，不会跟着 SwiftUI 的 @Observable 重绘；不重建的话菜单
+    /// 会停在旧语言上（窗口里已经变了、菜单没变，看起来像 bug）。
+    ///
+    /// 由本类**观察** `Localization`，而不是让 `AppSettings` 反过来调用这里——
+    /// Core 不该知道工作台，而且那条反向调用会让类型检查在这两个文件之间打转
+    /// （实测：`activeProviders()` 会报 ElementOfResult 无法推断）。
+    private func observeLanguage() {
+        withObservationTracking {
+            _ = Localization.shared.language
+        } onChange: { [weak self] in
+            // onChange 在值改变**之前**触发，跳到下一个 tick 再读才是新值。
+            Task { @MainActor in
+                self?.rebuildMenus()
+                self?.observeLanguage()      // 观察是一次性的，重新注册
+            }
+        }
+    }
+
+    private func rebuildMenus() {
+        guard menuInstalled else { return }
+        menuInstalled = false
+        installMainMenuIfNeeded()
     }
 
     @objc private func openSettings() {

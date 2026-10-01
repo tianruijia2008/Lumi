@@ -43,7 +43,7 @@ final class ModelDirectory {
             // that hangs must not hang the settings window.
             let names = try await withTimeout(10) { try await Self.list(kind) }
             if names.isEmpty {
-                errors[key] = "没有返回模型"
+                errors[key] = t("没有返回模型")
             } else {
                 fetched[key] = names.sorted()
             }
@@ -63,7 +63,7 @@ final class ModelDirectory {
         case .openAICompatible:
             let base = settings.baseURL(for: kind)
             guard let url = URL(string: base)?.appending(path: "models") else {
-                throw TranslationFailure.badResponse(-1, "API 地址无效")
+                throw TranslationFailure.badResponse(-1, t("API 地址无效"))
             }
             return try await ids(
                 from: url, headers: ["Authorization": "Bearer \(apiKey)"], shape: .openAI
@@ -86,7 +86,7 @@ final class ModelDirectory {
         case .ollama:
             let host = settings.ollamaHost
             guard let url = URL(string: host)?.appending(path: "api/tags") else {
-                throw TranslationFailure.badResponse(-1, "Ollama 地址无效")
+                throw TranslationFailure.badResponse(-1, t("Ollama 地址无效"))
             }
             return try await ids(from: url, headers: [:], shape: .ollama)
 

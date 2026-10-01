@@ -10,16 +10,16 @@ struct OllamaProvider: TranslationProvider {
     private var baseURL: URL { URL(string: host) ?? URL(string: "http://127.0.0.1:11434")! }
 
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
-        guard !model.isEmpty else { return .needsSetup("请在设置中选择本地模型") }
+        guard !model.isEmpty else { return .needsSetup(tDetached("请在设置中选择本地模型")) }
         do {
             let reachable = try await withTimeout(1.5) {
                 let url = baseURL.appending(path: "api/tags")
                 let (_, response) = try await URLSession.shared.data(from: url)
                 return (response as? HTTPURLResponse)?.statusCode == 200
             }
-            return reachable ? .ready : .unavailable("Ollama 无响应")
+            return reachable ? .ready : .unavailable(tDetached("Ollama 无响应"))
         } catch {
-            return .needsSetup("未检测到运行中的 Ollama，请先启动 `ollama serve`")
+            return .needsSetup(tDetached("未检测到运行中的 Ollama，请先启动 `ollama serve`"))
         }
     }
 

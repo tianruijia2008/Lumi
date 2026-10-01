@@ -55,7 +55,7 @@ enum PageTranslator {
 
     static func translate(_ request: PageTranslationRequest) async -> PageTranslationResult {
         guard let target = Language(rawValue: request.target), target != .auto else {
-            return failAll(request, engine: "Lumi", message: "不支持的目标语言 \(request.target)")
+            return failAll(request, engine: "Lumi", message: tDetached("不支持的目标语言 %@", request.target))
         }
         let engineID = WorkbenchEngineID(rawValue: request.engine) ?? .online
         let provider = await MainActor.run { AppSettings.shared.workbenchOnlineProvider() }
@@ -83,7 +83,7 @@ enum PageTranslator {
         for (source, offsets) in groups {
             let availability = await engine.availability(source: source, target: target)
             guard availability == .ready else {
-                let why = availability.message ?? "\(engine.displayName) 不可用"
+                let why = availability.message ?? tDetached("%@ 不可用", engine.displayName)
                 for offset in offsets { items[offset].error = why }
                 continue
             }
@@ -123,7 +123,7 @@ enum PageTranslator {
                 case .failed(_, let message)?:
                     items[offset].error = message
                 case nil:
-                    items[offset].error = "超时未返回"
+                    items[offset].error = tDetached("超时未返回")
                 }
             }
         }

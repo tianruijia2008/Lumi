@@ -45,8 +45,8 @@ struct ComposeView: View {
 
     private var masthead: some View {
         HStack(spacing: 10) {
-            Text("新文稿").font(.system(size: 14, weight: .semibold))
-            Text("输入或粘贴原文，逐段对照着读。漏掉的句子会被标出来。")
+            Text(t("新文稿")).font(.system(size: 14, weight: .semibold))
+            Text(t("输入或粘贴原文，逐段对照着读。漏掉的句子会被标出来。"))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -72,7 +72,7 @@ struct ComposeView: View {
             .clipShape(.rect(cornerRadius: 12))
             .overlay(alignment: .topLeading) {
                 if isBlank {
-                    Text("在这里粘贴原文，或把选中的文字拖进来")
+                    Text(t("在这里粘贴原文，或把选中的文字拖进来"))
                         .font(.system(size: 13))
                         .foregroundStyle(.tertiary)
                         .padding(.horizontal, 15)
@@ -113,7 +113,7 @@ struct ComposeView: View {
     private var notes: some View {
         let usable = document.engine.usesDocumentContext
         VStack(alignment: .leading, spacing: 5) {
-            TextField("这是一篇什么文章？术语、语体上有什么要求？（可留空）",
+            TextField(t("这是一篇什么文章？术语、语体上有什么要求？（可留空）"),
                       text: $notesDraft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
@@ -128,7 +128,7 @@ struct ComposeView: View {
                         .strokeBorder(Chrome.chipStroke, lineWidth: 1)
                 }
             if !usable {
-                Text("本机翻译逐句工作，读不到这些说明——换成联网才会用上。")
+                Text(t("本机翻译逐句工作，读不到这些说明——换成联网才会用上。"))
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
@@ -145,7 +145,7 @@ struct ComposeView: View {
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .overlay { Capsule().strokeBorder(Chrome.chipStroke, lineWidth: 1) }
-                    .help("按标题、列表、表格分段；代码块和公式原样保留，不翻译")
+                    .help(t("按标题、列表、表格分段；代码块和公式原样保留，不翻译"))
                     .fixedSize()
                     .transition(.opacity)
             }
@@ -156,7 +156,7 @@ struct ComposeView: View {
                     .foregroundStyle(.tertiary)
                     .transition(.opacity)
             }
-            ActionChip(title: "开始", symbol: "sparkles", prominent: true) {
+            ActionChip(title: t("开始"), symbol: "sparkles", prominent: true) {
                 guard !isBlank else { return }
                 let text = draft
                 if WorkbenchController.shared.start(text, fallbackTitle: droppedTitle, format: droppedFormat) {
@@ -229,8 +229,8 @@ struct ProofComposeView: View {
 
     private var masthead: some View {
         HStack(spacing: 10) {
-            Text("校对译文").font(.system(size: 14, weight: .semibold))
-            Text("放进原文和译文，逐段标出漏译、错译和前后不一的术语。")
+            Text(t("校对译文")).font(.system(size: 14, weight: .semibold))
+            Text(t("放进原文和译文，逐段标出漏译、错译和前后不一的术语。"))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -248,7 +248,7 @@ struct ProofComposeView: View {
         let text = side == .source ? source : translation
         return VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
-                Text(side == .source ? "原文" : "译文")
+                Text(side == .source ? t("原文") : t("译文"))
                     .font(.system(size: 12, weight: .semibold))
                 Text(stats(text))
                     .font(.system(size: 11))
@@ -262,7 +262,7 @@ struct ProofComposeView: View {
                         if format == .markdown { fileFormat = .markdown }
                     }
                 } label: {
-                    Label("打开文件…", systemImage: "folder")
+                    Label(t("打开文件…"), systemImage: "folder")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(Color.accentColor)
                 }
@@ -271,8 +271,8 @@ struct ProofComposeView: View {
             ProofEditor(
                 text: binding(side),
                 placeholder: side == .source
-                    ? "粘贴原文，或把 .txt、.md 文件拖进来"
-                    : "粘贴要校对的译文",
+                    ? t("粘贴原文，或把 .txt、.md 文件拖进来")
+                    : t("粘贴要校对的译文"),
                 focused: focus == side
             ) { dropped in
                 binding(side).wrappedValue = dropped.text
@@ -291,12 +291,13 @@ struct ProofComposeView: View {
         let language = Language.detect(sample)
         let cjk = [.simplifiedChinese, .traditionalChinese, .japanese, .korean].contains(language)
         let size = cjk ? trimmed.count { !$0.isWhitespace } : trimmed.split(whereSeparator: \.isWhitespace).count
-        return "\(language.displayName) · \(size.formatted()) \(cjk ? "字" : "词")"
+        let unit = cjk ? t("字") : t("词")
+        return "\(language.displayName) · \(size.formatted()) \(unit)"
     }
 
     private var notesField: some View {
         VStack(alignment: .leading, spacing: 5) {
-            TextField("术语表和要求（可留空）。术语每行一条，如：attention = 注意力",
+            TextField(t("术语表和要求（可留空）。术语每行一条，如：attention = 注意力"),
                       text: $notes, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
@@ -310,7 +311,7 @@ struct ProofComposeView: View {
                 }
             let terms = ProofCheck.glossary(from: notes).count
             if terms > 0 {
-                Text("识别到 \(terms) 条术语，每段都会核对译法。")
+                Text(t("识别到 %d 条术语，每段都会核对译法。", terms))
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
             }
@@ -331,7 +332,7 @@ struct ProofComposeView: View {
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .overlay { Capsule().strokeBorder(Chrome.chipStroke, lineWidth: 1) }
-                    .help("按标题、列表、表格对齐，代码块不参与校对")
+                    .help(t("按标题、列表、表格对齐，代码块不参与校对"))
                     .fixedSize()
             }
             Spacer(minLength: 8)
@@ -344,11 +345,11 @@ struct ProofComposeView: View {
             if document.aligning {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.small)
-                    Text("正在按意思对齐段落…").font(.system(size: 11.5)).foregroundStyle(.secondary)
+                    Text(t("正在按意思对齐段落…")).font(.system(size: 11.5)).foregroundStyle(.secondary)
                 }
                 .transition(.opacity)
             }
-            ActionChip(title: document.aligning ? "对齐中" : "开始校对", symbol: "checkmark.seal",
+            ActionChip(title: document.aligning ? t("对齐中") : t("开始校对"), symbol: "checkmark.seal",
                        prominent: true) { begin() }
                 .disabled(!ready || document.aligning)
                 .keyboardShortcut(.return, modifiers: .command)
@@ -358,11 +359,11 @@ struct ProofComposeView: View {
     }
 
     private var engineCaption: String {
-        if document.engineID == .offline { return "本机只做机检：数字、术语表、格式、篇幅" }
+        if document.engineID == .offline { return t("本机只做机检：数字、术语表、格式、篇幅") }
         guard let provider = AppSettings.shared.workbenchOnlineProvider() else {
-            return "没有启用语言模型，只能做机检"
+            return t("没有启用语言模型，只能做机检")
         }
-        return "\(provider.displayName) 逐段审读意思，外加机检"
+        return t("%@ 逐段审读意思，外加机检", provider.displayName)
     }
 
     private func begin() {

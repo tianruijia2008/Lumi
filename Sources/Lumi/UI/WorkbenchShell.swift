@@ -49,13 +49,13 @@ struct WorkbenchShell: View {
                 case .home:
                     WorkbenchHome(navigation: navigation, document: document,
                                   documents: documents, etymology: etymology)
-                        .task { onTitleChange("工作台") }
+                        .task { onTitleChange(t("工作台")) }
                 case .compose:
                     ComposeView(document: document)
-                        .task { onTitleChange("新文稿") }
+                        .task { onTitleChange(t("新文稿")) }
                 case .proofCompose:
                     ProofComposeView(document: document)
-                        .task { onTitleChange("校对译文") }
+                        .task { onTitleChange(t("校对译文")) }
                 case .read:
                     if document.isLoaded {
                         WorkbenchView(document: document, onTitleChange: onTitleChange)
@@ -74,7 +74,7 @@ struct WorkbenchShell: View {
     }
 
     private var etymologyTitle: String {
-        etymology.current.map { "词源 · \($0.word)" } ?? "词源"
+        etymology.current.map { t("词源 · %@", $0.word) } ?? t("词源")
     }
 }
 
@@ -118,7 +118,7 @@ private struct WorkbenchSidebar: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("设置")
+            .help(t("设置"))
         }
         .padding(.horizontal, 10)
         .padding(.top, 10)
@@ -134,28 +134,28 @@ private struct WorkbenchSidebar: View {
                 Image(systemName: "rectangle.split.2x1")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.accentColor)
-                Text("工作台").font(.system(size: 13.5, weight: .semibold))
+                Text(t("工作台")).font(.system(size: 13.5, weight: .semibold))
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 20)
 
-            SidebarRow(symbol: "house", title: "开始", selected: navigation.mode == .home) {
+            SidebarRow(symbol: "house", title: t("开始"), selected: navigation.mode == .home) {
                 navigation.go(.home)
             }
             .padding(.bottom, 20)
 
-            SidebarGroup(title: "新建")
-            SidebarRow(symbol: "rectangle.split.2x1", title: "通读全文",
+            SidebarGroup(title: t("新建"))
+            SidebarRow(symbol: "rectangle.split.2x1", title: t("通读全文"),
                        selected: navigation.mode == .compose) {
                 navigation.go(.compose)
             }
             .keyboardShortcut("n", modifiers: .command)
-            SidebarRow(symbol: "checkmark.seal", title: "校对译文",
+            SidebarRow(symbol: "checkmark.seal", title: t("校对译文"),
                        selected: navigation.mode == .proofCompose) {
                 navigation.go(.proofCompose)
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
-            SidebarRow(symbol: "point.3.connected.trianglepath.dotted", title: "词源",
+            SidebarRow(symbol: "point.3.connected.trianglepath.dotted", title: t("词源"),
                        selected: navigation.mode == .etymology) {
                 navigation.go(.etymology)
                 store.closeWord()
@@ -164,11 +164,11 @@ private struct WorkbenchSidebar: View {
 
             if navigation.mode == .etymology {
                 if !store.recents.isEmpty {
-                    SidebarGroup(title: "最近查过").padding(.top, 20)
+                    SidebarGroup(title: t("最近查过")).padding(.top, 20)
                     RecentWords(store: store, highlighted: nil)
                 }
             } else if !documents.recents.isEmpty {
-                SidebarGroup(title: "最近文稿").padding(.top, 20)
+                SidebarGroup(title: t("最近文稿")).padding(.top, 20)
                 RecentDocuments(
                     documents: documents,
                     highlighted: navigation.mode == .read ? document.id : nil
@@ -194,7 +194,7 @@ private struct DocumentNavigator: View {
             Button { navigation.go(.home) } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "chevron.left").font(.system(size: 9.5, weight: .semibold))
-                    Text("开始").font(Chrome.chipFont)
+                    Text(t("开始")).font(Chrome.chipFont)
                 }
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
@@ -230,10 +230,10 @@ private struct DocumentNavigator: View {
 
     private var meta: String {
         var parts: [String] = []
-        if document.isProof { parts.append("校对稿") }
+        if document.isProof { parts.append(t("校对稿")) }
         if document.format == .markdown { parts.append("Markdown") }
         parts.append("\(document.resolvedSource.displayName) → \(document.resolvedTarget.displayName)")
-        parts.append("\(document.workSegments.count) 段")
+        parts.append(t("%d 段", document.workSegments.count))
         return parts.joined(separator: " · ")
     }
 
@@ -243,7 +243,7 @@ private struct DocumentNavigator: View {
         if headings.count >= 2 {
             let top = headings.map(\.level).min() ?? 1
             let current = headings.last { $0.id <= document.readingPosition }?.id
-            SidebarGroup(title: "大纲")
+            SidebarGroup(title: t("大纲"))
             ForEach(headings.prefix(80), id: \.id) { heading in
                 Button { document.reveal(heading.id) } label: {
                     Text(heading.title)
@@ -274,7 +274,7 @@ private struct DocumentNavigator: View {
         let flagged = document.flaggedIDs
         if !flagged.isEmpty {
             HStack {
-                SidebarGroup(title: document.isProof ? "待改" : "待查")
+                SidebarGroup(title: document.isProof ? t("待改") : t("待查"))
                 Spacer()
                 Text("\(flagged.count)")
                     .font(.system(size: 10.5))
@@ -288,7 +288,7 @@ private struct DocumentNavigator: View {
                     Button { document.reveal(id) } label: {
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Circle().fill(tint(segment)).frame(width: 6, height: 6)
-                            Text("第 \(id + 1) 段")
+                            Text(t("第 %d 段", id + 1))
                                 .font(.system(size: 12))
                                 .monospacedDigit()
                                 .foregroundStyle(.primary)
@@ -313,7 +313,7 @@ private struct DocumentNavigator: View {
     private var others: some View {
         let rest = documents.recents.filter { $0.id != document.id }.prefix(4)
         if !rest.isEmpty {
-            SidebarGroup(title: "最近文稿")
+            SidebarGroup(title: t("最近文稿"))
             RecentDocuments(documents: documents, highlighted: nil, limit: 4, excluding: document.id)
         }
     }
@@ -330,11 +330,11 @@ private struct DocumentNavigator: View {
 
     private func label(_ segment: WorkbenchDocument.Segment) -> String {
         switch segment.status {
-        case .failed: return "没译成"
-        case .dropped: return "疑似漏译"
+        case .failed: return t("没译成")
+        case .dropped: return t("疑似漏译")
         default: break
         }
-        if case .failed = segment.review { return "没校对成" }
+        if case .failed = segment.review { return t("没校对成") }
         var kinds: [String] = []
         for issue in segment.openIssues where !kinds.contains(issue.kind.label) { kinds.append(issue.kind.label) }
         return kinds.prefix(3).joined(separator: " · ")
@@ -377,7 +377,7 @@ private struct RecentDocuments: View {
                 }
                 .buttonStyle(SidebarButtonStyle())
                 .contextMenu {
-                    Button("从最近移除") { documents.remove(summary.id) }
+                    Button(t("从最近移除")) { documents.remove(summary.id) }
                 }
             }
         }
@@ -394,7 +394,7 @@ private struct WordNavigator: View {
             Button { store.closeWord() } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "chevron.left").font(.system(size: 9.5, weight: .semibold))
-                    Text("词源").font(Chrome.chipFont)
+                    Text(t("词源")).font(Chrome.chipFont)
                 }
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
@@ -417,14 +417,14 @@ private struct WordNavigator: View {
             .padding(.bottom, 20)
 
             if let entry = lookup.entry {
-                SidebarGroup(title: "本页")
+                SidebarGroup(title: t("本页"))
                 ForEach(sections(entry), id: \.0) { section, title, count in
                     SidebarRow(title: title, count: count) { store.scrollTarget = section }
                 }
             }
 
             if store.recents.count > 1 {
-                SidebarGroup(title: "最近查过").padding(.top, 20)
+                SidebarGroup(title: t("最近查过")).padding(.top, 20)
                 RecentWords(store: store, highlighted: lookup.word)
             }
         }
@@ -432,21 +432,21 @@ private struct WordNavigator: View {
 
     private var subtitle: String? {
         guard let entry = lookup.entry else { return nil }
-        let parts = [entry.partOfSpeechLocal, entry.firstCentury.map { "\($0)进入英语" }].compactMap(\.self)
+        let parts = [entry.partOfSpeechLocal, entry.firstCentury.map { t("%@进入英语", $0) }].compactMap(\.self)
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private func sections(_ entry: EtymologyEntry) -> [(EtymologySection, String, String?)] {
-        var rows: [(EtymologySection, String, String?)] = [(.narration, "讲解", nil)]
+        var rows: [(EtymologySection, String, String?)] = [(.narration, t("讲解"), nil)]
         if !entry.chain.isEmpty || !entry.folk.isEmpty {
-            rows.append((.chain, "来历", entry.folk.isEmpty ? "\(entry.chain.count) 步" : "有民间词源"))
+            rows.append((.chain, t("来历"), entry.folk.isEmpty ? t("%d 步", entry.chain.count) : t("有民间词源")))
         }
         if !entry.senses.isEmpty {
-            rows.append((.senses, entry.datedSenses.count >= 2 ? "词义变迁" : "义项", "\(entry.senses.count)"))
+            rows.append((.senses, entry.datedSenses.count >= 2 ? t("词义变迁") : t("义项"), "\(entry.senses.count)"))
         }
-        if !entry.quotes.isEmpty { rows.append((.quotes, "引文", "\(entry.quotes.count)")) }
+        if !entry.quotes.isEmpty { rows.append((.quotes, t("引文"), "\(entry.quotes.count)")) }
         let kin = entry.kin.reduce(0) { $0 + $1.words.count }
-        if kin > 0 { rows.append((.kin, "同根词", "\(kin)")) }
+        if kin > 0 { rows.append((.kin, t("同根词"), "\(kin)")) }
         return rows
     }
 }
@@ -534,7 +534,7 @@ private struct SidebarRow: View {
                     Text(count)
                         .font(.system(size: 10.5))
                         .monospacedDigit()
-                        .foregroundStyle(count.contains("民间") ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
+                        .foregroundStyle(count == t("有民间词源") ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
                 }
             }
             .padding(.horizontal, 8)

@@ -32,7 +32,7 @@ enum SSE {
                 do {
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
-                        throw TranslationFailure.badResponse(-1, "无效响应")
+                        throw TranslationFailure.badResponse(-1, tDetached("无效响应"))
                     }
                     guard (200..<300).contains(http.statusCode) else {
                         var body = ""

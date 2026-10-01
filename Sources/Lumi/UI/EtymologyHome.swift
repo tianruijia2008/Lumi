@@ -34,30 +34,30 @@ struct EtymologyHome: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     field
-                    Text(rejected ? "只查单个英文单词。句子和其他语言，交给面板。"
-                                  : "只查英文单词。句子和其他语言，交给面板。")
+                    Text(rejected ? t("只查单个英文单词。句子和其他语言，交给面板。")
+                                  : t("只查英文单词。句子和其他语言，交给面板。"))
                         .font(.system(size: 11.5))
                         .foregroundStyle(rejected ? AnyShapeStyle(Color.orange) : AnyShapeStyle(.tertiary))
                         .padding(.leading, 18)
                         .padding(.top, 9)
 
-                    SectionHead(title: "今日一词", note: "每天换一个")
+                    SectionHead(title: t("今日一词"), note: t("每天换一个"))
                     FeaturedCard(word: featured, store: store)
 
-                    SectionHead(title: "有故事的词", note: "意思变得最远的几个")
+                    SectionHead(title: t("有故事的词"), note: t("意思变得最远的几个"))
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3),
                               spacing: 12) {
                         ForEach(cards, id: \.self) { word in ShelfCard(word: word, store: store) }
                     }
 
                     HStack(spacing: 8) {
-                        Label("面板", systemImage: "character.magnify")
+                        Label(t("面板"), systemImage: "character.magnify")
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .chipShell()
-                        Text("在面板里查一个英文单词，词典下面那行「来历」点「深究」，也会来到这里。")
+                        Text(t("在面板里查一个英文单词，词典下面那行「来历」点「深究」，也会来到这里。"))
                             .font(.system(size: 11.5))
                             .foregroundStyle(.tertiary)
                     }
@@ -76,13 +76,13 @@ struct EtymologyHome: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("词源").font(.system(size: 14, weight: .semibold))
-            Text("英文单词从哪来、意思怎么变过来、历代怎么用")
+            Text(t("词源")).font(.system(size: 14, weight: .semibold))
+            Text(t("英文单词从哪来、意思怎么变过来、历代怎么用"))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 10)
-            Text("讲解").font(Chrome.chipFont).foregroundStyle(.tertiary)
+            Text(t("讲解")).font(Chrome.chipFont).foregroundStyle(.tertiary)
             EngineToggle(
                 selection: Binding(get: { store.engine }, set: { store.engine = $0 }),
                 onlineName: "AI", onlineSymbol: "sparkles",
@@ -98,7 +98,7 @@ struct EtymologyHome: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(.tertiary)
-            TextField("输入一个英文单词", text: $query)
+            TextField(t("输入一个英文单词"), text: $query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 16))
                 .focused($focused)
@@ -163,7 +163,7 @@ private struct ShelfCard: View {
                         Text(word).font(.system(size: 25, weight: .semibold, design: .serif).italic())
                         Spacer()
                         if entry?.folk.isEmpty == false {
-                            Text("有民间词源")
+                            Text(t("有民间词源"))
                                 .font(.system(size: 9.5))
                                 .foregroundStyle(.orange)
                                 .padding(.horizontal, 7)
@@ -206,8 +206,9 @@ private struct ShelfCard: View {
     }
 
     private func meta(_ entry: EtymologyEntry) -> String {
-        [entry.oldestRecorded?.language, entry.firstCentury.map { "\($0)进入英语" }]
-            .compactMap(\.self).joined(separator: " · ")
+        var parts = [entry.oldestRecorded?.language].compactMap(\.self)
+        if let century = entry.firstCentury { parts.append(t("%@进入英语", century)) }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -219,7 +220,7 @@ private struct FeaturedCard: View {
         CardLoader(word: word, store: store) { entry in
             HStack(alignment: .top, spacing: 0) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("意思怎么一步步变过来")
+                    Text(t("意思怎么一步步变过来"))
                         .font(.system(size: 10.5))
                         .tracking(0.8)
                         .foregroundStyle(.tertiary)
@@ -259,7 +260,7 @@ private struct FeaturedCard: View {
                     Spacer(minLength: 0)
                     Button { store.open(word) } label: {
                         HStack(spacing: 4) {
-                            Text("打开 \(word)")
+                            Text(t("打开 %@", word))
                             Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
                         }
                         .font(.system(size: 12, weight: .semibold))

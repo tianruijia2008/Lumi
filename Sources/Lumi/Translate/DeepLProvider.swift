@@ -5,10 +5,10 @@ struct DeepLProvider: TranslationProvider {
 
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
         guard Keychain.get(kind.keychainAccount)?.isEmpty == false else {
-            return .needsSetup("请在设置中填写 DeepL API Key")
+            return .needsSetup(tDetached("请在设置中填写 DeepL API Key"))
         }
         guard Self.code(request.target, isTarget: true) != nil else {
-            return .unavailable("DeepL 不支持此目标语言")
+            return .unavailable(tDetached("DeepL 不支持此目标语言"))
         }
         return .ready
     }

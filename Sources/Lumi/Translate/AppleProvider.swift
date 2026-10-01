@@ -11,13 +11,13 @@ struct AppleProvider: TranslationProvider {
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
         guard let source = request.source.localeLanguage,
               let target = request.target.localeLanguage else {
-            return .unavailable("语言未指定")
+            return .unavailable(tDetached("语言未指定"))
         }
         switch await LanguageAvailability().status(from: source, to: target) {
         case .installed:   return .ready
-        case .supported:   return .needsSetup("需先在「系统设置 › 通用 › 语言与地区 › 翻译语言」下载语言包")
-        case .unsupported: return .unavailable("系统翻译不支持此语言对")
-        @unknown default:  return .unavailable("未知状态")
+        case .supported:   return .needsSetup(tDetached("需先在「系统设置 › 通用 › 语言与地区 › 翻译语言」下载语言包"))
+        case .unsupported: return .unavailable(tDetached("系统翻译不支持此语言对"))
+        @unknown default:  return .unavailable(tDetached("未知状态"))
         }
     }
 
@@ -51,11 +51,11 @@ enum TranslationFailure: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .unsupportedPair:           "不支持的语言对"
-        case .missingKey(let provider):  "\(provider) 缺少 API Key，请在设置中填写"
+        case .unsupportedPair:           tDetached("不支持的语言对")
+        case .missingKey(let provider):  tDetached("%@ 缺少 API Key，请在设置中填写", provider)
         case .badResponse(let code, let body):
-            "服务返回 \(code)：\(body.prefix(200))"
-        case .emptyResult:               "服务返回了空结果"
+            tDetached("服务返回 %d：%@", code, String(body.prefix(200)))
+        case .emptyResult:               tDetached("服务返回了空结果")
         }
     }
 }

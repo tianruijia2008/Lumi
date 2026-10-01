@@ -11,7 +11,7 @@ struct ClaudeProvider: TranslationProvider {
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
         Keychain.get(kind.keychainAccount)?.isEmpty == false
             ? .ready
-            : .needsSetup("请在设置中填写 Claude API Key")
+            : .needsSetup(tDetached("请在设置中填写 Claude API Key"))
     }
 
     func translate(_ request: TranslationRequest) -> AsyncThrowingStream<TranslationEvent, any Error> {

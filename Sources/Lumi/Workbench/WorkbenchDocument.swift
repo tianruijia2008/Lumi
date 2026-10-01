@@ -72,7 +72,7 @@ final class WorkbenchDocument {
     private(set) var format: TextFormat = .plain
     private(set) var purpose: DocumentPurpose = .read
 
-    var title = "未命名"
+    var title = t("未命名")
     /// Domain, terminology and register, folded into every segment's prompt —
     /// but only by an engine that can read it. See `engine.usesDocumentContext`.
     /// Glossary lines in it ("attention = 注意力") are also checked by machine.
@@ -186,12 +186,12 @@ final class WorkbenchDocument {
     /// Every open review note, as a Markdown list — for sending back to
     /// whoever made the translation.
     var reviewReport: String {
-        var lines = ["# 校对意见：\(title)", ""]
+        var lines = [t("# 校对意见：%@", title), ""]
         let flagged = segments.filter { !$0.openIssues.isEmpty }
-        lines.append("共 \(workSegments.count) 段，\(openIssueCount) 处待改。")
+        lines.append(t("共 %d 段，%d 处待改。", workSegments.count, openIssueCount))
         for segment in flagged {
             lines.append("")
-            lines.append("## 第 \(segment.id + 1) 段")
+            lines.append(t("## 第 %d 段", segment.id + 1))
             lines.append("")
             lines.append("> " + Markdown.plainText(segment.source).replacingOccurrences(of: "\n", with: " "))
             lines.append("")
@@ -201,7 +201,7 @@ final class WorkbenchDocument {
                     line += " 「\(issue.quote)」"
                     if let suggestion = issue.suggestion { line += " → 「\(suggestion)」" }
                 } else if let suggestion = issue.suggestion {
-                    line += " 建议：「\(suggestion)」"
+                    line += t(" 建议：「%@」", suggestion)
                 }
                 line += "：\(issue.note)"
                 lines.append(line)
@@ -292,7 +292,7 @@ final class WorkbenchDocument {
             }
             return segment
         }
-        self.title = DocumentParser.title(of: blocks, raw: text) ?? fallbackTitle ?? "未命名"
+        self.title = DocumentParser.title(of: blocks, raw: text) ?? fallbackTitle ?? t("未命名")
         // Resolved here and not only in `run`, because the header shows the
         // direction: a chip reading 英文 → 中文 over a German paper, right up
         // until the moment you press 翻译, is worse than no chip at all.
@@ -357,8 +357,8 @@ final class WorkbenchDocument {
             if kind.isVerbatim, out.isEmpty { out = src }
             return Segment(id: offset, source: src, translation: out, status: .done, block: kind)
         }
-        engineLabel = "外来译文"
-        self.title = DocumentParser.title(of: sourceBlocks, raw: source) ?? fallbackTitle ?? "未命名"
+        engineLabel = t("外来译文")
+        self.title = DocumentParser.title(of: sourceBlocks, raw: source) ?? fallbackTitle ?? t("未命名")
         Log.window.info("""
             proof loaded: source=\(sourceBlocks.count, privacy: .public) \
             target=\(targetBlocks.count, privacy: .public) \
@@ -423,7 +423,7 @@ final class WorkbenchDocument {
     func reset() {
         cancel()
         segments = []
-        title = "未命名"
+        title = t("未命名")
         engineProblem = nil
     }
 
@@ -538,8 +538,8 @@ final class WorkbenchDocument {
         activity = .translating
         engineProblem = nil
         engineLabel = switch engineID {
-        case .offline: "本机"
-        case .online: AppSettings.shared.workbenchOnlineProvider()?.displayName ?? "联网"
+        case .offline: t("本机")
+        case .online: AppSettings.shared.workbenchOnlineProvider()?.displayName ?? t("联网")
         }
 
         runTask = Task { [weak self] in
@@ -590,7 +590,7 @@ final class WorkbenchDocument {
             for index in self.segments.indices where running.contains(self.segments[index].id) {
                 switch self.segments[index].status {
                 case .running, .pending:
-                    self.segments[index].status = .failed("引擎没有返回这一段，可点重试")
+                    self.segments[index].status = .failed(t("引擎没有返回这一段，可点重试"))
                 default:
                     break
                 }
@@ -630,7 +630,7 @@ final class WorkbenchDocument {
                 text.trimmingCharacters(in: .whitespacesAndNewlines), source: segment.source)
             segment.translation = clean
             guard !clean.isEmpty else {
-                segment.status = .dropped("整段没有译文")
+                segment.status = .dropped(t("整段没有译文"))
                 return
             }
             let source = markdown ? Markdown.visibleText(segment.source) : segment.source
@@ -639,7 +639,7 @@ final class WorkbenchDocument {
             if !missing.isEmpty {
                 // Numbers and acronyms are reproduced verbatim by any usable
                 // translation, so a missing one is a missing claim.
-                segment.status = .dropped("原文里的 \(missing.prefix(3).joined(separator: "、")) 没出现在译文里")
+                segment.status = .dropped(t("原文里的 %@ 没出现在译文里", missing.prefix(3).joined(separator: "、")))
                 return
             }
             // 0.45 against a worst observed good case of 0.20 (English →
@@ -650,7 +650,7 @@ final class WorkbenchDocument {
                 source: source, translation: out,
                 from: resolvedSource, to: resolvedTarget
             ), short > 0.45 {
-                segment.status = .dropped("译文比预期短 \(Int(short * 100))%，可能有整句没译")
+                segment.status = .dropped(t("译文比预期短 %d%%，可能有整句没译", Int(short * 100)))
                 return
             }
             segment.status = .done
@@ -716,9 +716,9 @@ final class WorkbenchDocument {
 
         guard engineID == .online, let provider = AppSettings.shared.workbenchOnlineProvider() else {
             for index in targets { segments[index].review = .done }
-            reviewerLabel = "机检"
+            reviewerLabel = t("机检")
             if engineID == .online {
-                engineProblem = "逐句审读要用语言模型。在设置里开启一个（如 DeepSeek）并填好 Key；现在只做了机检。"
+                engineProblem = t("逐句审读要用语言模型。在设置里开启一个（如 DeepSeek）并填好 Key；现在只做了机检。")
             }
             refreshConsistency()
             touch()
@@ -755,7 +755,7 @@ final class WorkbenchDocument {
             let online = await MainActor.run { NetworkMonitor.shared.isOnline }
             if provider.requiresNetwork, !online {
                 guard let self else { return }
-                self.engineProblem = "当前离线，只做了机检。联网后再点校对。"
+                self.engineProblem = t("当前离线，只做了机检。联网后再点校对。")
                 for index in self.segments.indices where running.contains(self.segments[index].id) {
                     self.segments[index].review = .done
                 }
@@ -791,7 +791,7 @@ final class WorkbenchDocument {
             guard let self, !Task.isCancelled else { return }
             for index in self.segments.indices
             where running.contains(self.segments[index].id) && self.segments[index].review == .running {
-                self.segments[index].review = .failed("模型没有返回这一段，可点重试")
+                self.segments[index].review = .failed(t("模型没有返回这一段，可点重试"))
             }
             let segmentsTook = ContinuousClock.now - clock
             self.refreshConsistency()
@@ -851,13 +851,13 @@ final class WorkbenchDocument {
         }
         for finding in findings {
             guard let index = segments.firstIndex(where: { $0.id == finding.segment }) else { continue }
-            let places = finding.elsewhere.prefix(4).map { "第 \($0 + 1) 段" }.joined(separator: "、")
+            let places = finding.elsewhere.prefix(4).map { t("第 %d 段", $0 + 1) }.joined(separator: "、")
             let issue = ProofIssue(
                 kind: .terminology, origin: .consistency, quote: finding.used,
                 sourceQuote: finding.term, suggestion: finding.preferred,
                 note: places.isEmpty
-                    ? "术语表要求把 \(finding.term) 译作「\(finding.preferred)」"
-                    : "\(finding.term) 在\(places)译作「\(finding.preferred)」，这里是「\(finding.used)」"
+                    ? t("术语表要求把 %@ 译作「%@」", finding.term, finding.preferred)
+                    : t("%@ 在%@译作「%@」，这里是「%@」", finding.term, places, finding.preferred, finding.used)
             )
             if segments[index].issues.contains(where: { Self.same($0, issue) }) { continue }
             segments[index].issues.append(issue)

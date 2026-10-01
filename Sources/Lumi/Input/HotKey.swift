@@ -44,15 +44,17 @@ struct HotKeyCombo: Codable, Sendable, Hashable, Identifiable {
         return characters.uppercased().isEmpty ? "?" : characters.uppercased()
     }
 
-    private static let namedKeys: [Int: String] = [
-        kVK_Space: "空格", kVK_Return: "↩", kVK_Tab: "⇥", kVK_Escape: "⎋",
-        kVK_Delete: "⌫", kVK_ForwardDelete: "⌦",
-        kVK_LeftArrow: "←", kVK_RightArrow: "→", kVK_UpArrow: "↑", kVK_DownArrow: "↓",
-        kVK_Home: "↖", kVK_End: "↘", kVK_PageUp: "⇞", kVK_PageDown: "⇟",
-        kVK_F1: "F1", kVK_F2: "F2", kVK_F3: "F3", kVK_F4: "F4", kVK_F5: "F5",
-        kVK_F6: "F6", kVK_F7: "F7", kVK_F8: "F8", kVK_F9: "F9", kVK_F10: "F10",
-        kVK_F11: "F11", kVK_F12: "F12",
-    ]
+    private static var namedKeys: [Int: String] {
+        [
+            kVK_Space: tDetached("空格"), kVK_Return: "↩", kVK_Tab: "⇥", kVK_Escape: "⎋",
+            kVK_Delete: "⌫", kVK_ForwardDelete: "⌦",
+            kVK_LeftArrow: "←", kVK_RightArrow: "→", kVK_UpArrow: "↑", kVK_DownArrow: "↓",
+            kVK_Home: "↖", kVK_End: "↘", kVK_PageUp: "⇞", kVK_PageDown: "⇟",
+            kVK_F1: "F1", kVK_F2: "F2", kVK_F3: "F3", kVK_F4: "F4", kVK_F5: "F5",
+            kVK_F6: "F6", kVK_F7: "F7", kVK_F8: "F8", kVK_F9: "F9", kVK_F10: "F10",
+            kVK_F11: "F11", kVK_F12: "F12",
+        ]
+    }
 }
 
 /// Which shortcut a recorder is editing.
@@ -62,10 +64,10 @@ enum HotKeyAction: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .translateSelection: "翻译选中文本"
-        case .showInput:          "打开输入框"
-        case .captureScreen:      "截图翻译"
-        case .showWorkbench:      "打开工作台"
+        case .translateSelection: tDetached("翻译选中文本")
+        case .showInput:          tDetached("打开输入框")
+        case .captureScreen:      tDetached("截图翻译")
+        case .showWorkbench:      tDetached("打开工作台")
         }
     }
 

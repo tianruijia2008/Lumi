@@ -23,7 +23,7 @@ struct HotKeyRecorder: View {
                         .foregroundStyle(.orange)
                 }
 
-                Button(isRecording ? "按下新快捷键…" : settings.hotKey(for: action).displayString) {
+                Button(isRecording ? t("按下新快捷键…") : settings.hotKey(for: action).displayString) {
                     isRecording ? stop() : start()
                 }
                 .buttonStyle(.bordered)
@@ -37,7 +37,7 @@ struct HotKeyRecorder: View {
                     Image(systemName: "arrow.uturn.backward")
                 }
                 .buttonStyle(.borderless)
-                .help("恢复默认")
+                .help(t("恢复默认"))
                 .disabled(settings.hotKey(for: action) == action.defaultCombo)
             }
         }
@@ -73,13 +73,13 @@ struct HotKeyRecorder: View {
             label: HotKeyCombo.label(for: event)
         )
         guard combo.hasModifier else {
-            warning = "至少要带一个修饰键"
+            warning = t("至少要带一个修饰键")
             return   // stay in recording mode so the user can try again
         }
         if let clash = HotKeyAction.allCases.first(where: {
             $0 != action && settings.hotKey(for: $0) == combo
         }) {
-            warning = "与「\(clash.title)」冲突"
+            warning = t("与「%@」冲突", clash.title)
             return
         }
 

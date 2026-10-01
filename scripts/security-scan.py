@@ -716,6 +716,101 @@ def _check_shell_interpolation(root: Path, findings: list[Finding]) -> None:
                                         f"${{{match.group(0)[1:]}}}（否则会展开成空并破坏 UTF-8）"))
 
 
+# 界面文案（i18n）自检：英文界面不能出现"静默回落成中文"的地方。
+#
+# 表是按中文原文当 key 的（见 Core/Localization.swift），所以三件事都能机械地查：
+#   1. 每个 t("…") / tDetached("…") 都有对应的英文条目（缺了界面就会漏出中文）
+#   2. 表里没有没人用的条目（key 打错字时正是这个症状）
+#   3. key 本身必须是中文原文（包错了字符串——例如把英文包进去——这里会报）
+T_CALL = re.compile(r'\bt(?:Detached)?\(\s*"((?:[^"\\]|\\.)*)"')
+TABLE_ENTRY = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*:\s*"((?:[^"\\]|\\.)*)"', re.M)
+TABLE_FILE = re.compile(r"^Strings[A-Za-z]+\.swift$")
+CJK = re.compile(r"[\u4e00-\u9fff]")
+# 英文里绝不该出现的字符：汉字 + 中日韩标点（「」、。〈〉）+ 全角标点（：（），？！）。
+# 注意**不含**省略号 … 和弯引号 “”—它们在英文里是合法的（"Settings…"、"using “x”"）。
+CJK_OR_FULLWIDTH = re.compile(r"[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]")
+
+
+def _localization_keys(root: Path):
+    """返回（代码里用到的 key，所有表的 key -> (英文, 文件, 行号)，每张表各自的条目）。
+
+    第三项按表分开，是为了能发现"同一句中文被两张表各翻译成一个不同英文"——
+    那种情况下合并顺序会静默决定谁生效，表现是"英文界面里某个词莫名其妙不对"。
+    """
+    sources = sorted((root / "Sources" / "Lumi").rglob("*.swift"))
+    used: dict[str, tuple[str, int]] = {}
+    defined: dict[str, tuple[str, int]] = {}
+    tables: dict[str, dict[str, tuple[str, int]]] = {}
+    for path in sources:
+        text = path.read_text(encoding="utf-8")
+        relative = str(path.relative_to(root))
+        is_table = bool(TABLE_FILE.match(path.name))
+        if is_table:
+            entries: dict[str, tuple[str, int]] = {}
+            for match in TABLE_ENTRY.finditer(text):
+                line = text.count("\n", 0, match.start()) + 1
+                entries.setdefault(match.group(1), (match.group(2), line))
+                defined.setdefault(match.group(1), (relative, line))
+            tables[relative] = entries
+            continue
+        for match in T_CALL.finditer(text):
+            line_start = text.rfind("\n", 0, match.start()) + 1
+            line_text = text[line_start:text.find("\n", match.start())]
+            if _in_comment(line_text, match.start() - line_start):
+                continue          # 文档注释里的示例调用不算调用点
+            line = text.count("\n", 0, match.start()) + 1
+            used.setdefault(match.group(1), (relative, line))
+    return used, defined, tables
+
+
+def _in_comment(line_text: str, column: int) -> bool:
+    """这一行里、这个列位置之前是否已经进入了注释。"""
+    stripped = line_text.lstrip()
+    if stripped.startswith(("//", "*", "/*")):
+        return True
+    return "//" in line_text[:column]
+
+
+def _check_localization(root: Path, findings: list[Finding]) -> None:
+    used, defined, tables = _localization_keys(root)
+    if not used and not defined:
+        return
+    # 英文值里不该还有中文：最常见的症状是中文标点（「」／：／……）被原样留在英文里，
+    # 这种错机检最容易漏、肉眼看最刺眼。
+    for table_path, entries in sorted(tables.items()):
+        for key, (value, line) in sorted(entries.items()):
+            leaked = CJK_OR_FULLWIDTH.findall(value)
+            if leaked:
+                findings.append(Finding(
+                    table_path, line, "i18n/chinese-in-english",
+                    f'"{value[:44]}" 的英文里还留着中文字符 {sorted(set(leaked))}'))
+
+    # 跨表冲突：同一条中文在两处被译成不同英文
+    first_seen: dict[str, tuple[str, str, int]] = {}
+    for table_path, entries in sorted(tables.items()):
+        for key, (value, line) in sorted(entries.items()):
+            if key in first_seen:
+                previous_value, previous_file, _ = first_seen[key]
+                if previous_value != value:
+                    findings.append(Finding(
+                        table_path, line, "i18n/conflicting-entry",
+                        f'"{key[:32]}" 在 {previous_file} 是 "{previous_value}"，'
+                        f'这里是 "{value}"——同一句中文只该在一张表里定义'))
+                continue
+            first_seen[key] = (value, table_path, line)
+    for key, (path, line) in sorted(used.items()):
+        if key not in defined:
+            findings.append(Finding(path, line, "i18n/missing-translation",
+                                    f't("…") 没有英文条目，英文界面会漏出中文：{key[:48]}'))
+        elif not CJK.search(key):
+            findings.append(Finding(path, line, "i18n/not-chinese-key",
+                                    f'key 里没有中文，疑似把英文/变量包进了 t()：{key[:48]}'))
+    for key, (path, line) in sorted(defined.items()):
+        if key not in used:
+            findings.append(Finding(path, line, "i18n/unused-entry",
+                                    f"表里这条没有任何 t(...) 使用（key 打错字时正是这个症状）：{key[:48]}"))
+
+
 def scan_invariants(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     _check_port_agreement(root, findings)
@@ -723,6 +818,7 @@ def scan_invariants(root: Path) -> list[Finding]:
     _check_entitlements_and_signing(root, findings)
     _check_no_dependencies(root, findings)
     _check_shell_interpolation(root, findings)
+    _check_localization(root, findings)
     return findings
 
 
@@ -775,7 +871,10 @@ def main(argv: list[str] | None = None) -> int:
         # "改了规格忘了重新 deliver"在提交那一刻就被拦住，而不是等 CI 报红。
         if "invariants" in phases:
             phases.remove("invariants")
-        if "docs" in phases and not any(f.startswith("docs/") for f in files):
+        # 文档阶段覆盖的东西不止 docs/ 目录，还包括 SPEC/DOC 文件本身的漂移，
+        # 所以它们被 staged 时也要跑（否则"改了代码忘了同步模块清单"会漏过去）。
+        touches_docs = any(f.startswith("docs/") or f in DOC_FILES for f in files)
+        if "docs" in phases and not touches_docs:
             phases.remove("docs")
 
     print(f"Lumi repo guard · 仓库 {root}")

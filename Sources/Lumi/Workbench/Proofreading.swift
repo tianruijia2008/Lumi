@@ -14,14 +14,14 @@ struct ProofIssue: Codable, Identifiable, Hashable, Sendable {
 
         var label: String {
             switch self {
-            case .omission: "漏译"
-            case .addition: "增译"
-            case .mistranslation: "错译"
-            case .terminology: "术语"
-            case .number: "数字"
-            case .grammar: "语病"
-            case .style: "措辞"
-            case .format: "格式"
+            case .omission: tDetached("漏译")
+            case .addition: tDetached("增译")
+            case .mistranslation: tDetached("错译")
+            case .terminology: tDetached("术语")
+            case .number: tDetached("数字")
+            case .grammar: tDetached("语病")
+            case .style: tDetached("措辞")
+            case .format: tDetached("格式")
             }
         }
 
@@ -55,8 +55,8 @@ struct ProofIssue: Codable, Identifiable, Hashable, Sendable {
 
         var label: String? {
             switch self {
-            case .machine: "机检"
-            case .consistency, .document: "全文比对"
+            case .machine: tDetached("机检")
+            case .consistency, .document: tDetached("全文比对")
             case .model: nil
             }
         }
@@ -109,12 +109,12 @@ enum ProofCheck {
         if block.isVerbatim { return [] }
         if src.isEmpty, !out.isEmpty {
             return [ProofIssue(kind: .addition, origin: .machine, quote: "",
-                               note: "原文里没有对应的段落，译文多出了这一段")]
+                               note: tDetached("原文里没有对应的段落，译文多出了这一段"))]
         }
         if out.isEmpty {
             guard !src.isEmpty else { return [] }
             return [ProofIssue(kind: .omission, origin: .machine, quote: "",
-                               note: "这一段在译文里找不到对应")]
+                               note: tDetached("这一段在译文里找不到对应"))]
         }
 
         var issues: [ProofIssue] = []
@@ -128,7 +128,7 @@ enum ProofCheck {
         if from.isHanScript != to.isHanScript, visibleSource.count >= 12,
            stillSource || normalised(visibleSource) == normalised(visibleOut) {
             issues.append(ProofIssue(kind: .omission, origin: .machine, quote: "",
-                                     note: "这一段看起来没有翻译，仍是\(from.displayName)"))
+                                     note: tDetached("这一段看起来没有翻译，仍是%@", from.displayName)))
             return issues
         }
 
@@ -137,13 +137,13 @@ enum ProofCheck {
             if !missing.isEmpty {
                 issues.append(ProofIssue(
                     kind: .number, origin: .machine, quote: "", sourceQuote: missing.first ?? "",
-                    note: "原文里的 \(missing.prefix(3).joined(separator: "、")) 没出现在译文里"
+                    note: tDetached("原文里的 %@ 没出现在译文里", missing.prefix(3).joined(separator: "、"))
                 ))
             }
             if let short = DropCheck.shortfall(source: visibleSource, translation: visibleOut, from: from, to: to),
                short > 0.45 {
                 issues.append(ProofIssue(kind: .omission, origin: .machine, quote: "",
-                                         note: "译文比预期短 \(Int(short * 100))%，可能有整句没译"))
+                                         note: tDetached("译文比预期短 %d%%，可能有整句没译", Int(short * 100))))
             }
         }
 
@@ -151,19 +151,19 @@ enum ProofCheck {
             let lostCode = Markdown.codeSpans(src).filter { !out.contains($0) }
             if let first = lostCode.first {
                 issues.append(ProofIssue(kind: .format, origin: .machine, quote: "", sourceQuote: "`\(first)`",
-                                         note: "行内代码 `\(first)` 应原样保留，译文里没有"))
+                                         note: tDetached("行内代码 `%@` 应原样保留，译文里没有", first)))
             }
             let lostLinks = Markdown.linkTargets(src).filter { !out.contains($0) }
             if let first = lostLinks.first {
                 issues.append(ProofIssue(kind: .format, origin: .machine, quote: "", sourceQuote: first,
-                                         note: "链接地址 \(first) 在译文里丢了"))
+                                         note: tDetached("链接地址 %@ 在译文里丢了", first)))
             }
         }
 
         for term in glossary where contains(term: term.source, in: src) && !out.contains(term.target) {
             issues.append(ProofIssue(
                 kind: .terminology, origin: .machine, quote: "", sourceQuote: term.source,
-                note: "术语表要求把 \(term.source) 译作「\(term.target)」，这一段没有用"
+                note: tDetached("术语表要求把 %@ 译作「%@」，这一段没有用", term.source, term.target)
             ))
         }
         return issues
@@ -570,13 +570,13 @@ struct ModelReviewer: Sendable {
                 }
             }
         } catch is CancellationError {
-            return .failed(index: job.index, message: "已取消")
+            return .failed(index: job.index, message: tDetached("已取消"))
         } catch {
             return .failed(index: job.index, message: error.localizedDescription)
         }
         guard let parsed = ReviewPrompt.parse(text, translation: job.translation) else {
             Log.window.error("review unparseable: \(text.prefix(300), privacy: .public)")
-            return .failed(index: job.index, message: "模型的回答读不懂，可重试")
+            return .failed(index: job.index, message: tDetached("模型的回答读不懂，可重试"))
         }
         return .finished(index: job.index, issues: parsed.issues, terms: parsed.terms)
     }

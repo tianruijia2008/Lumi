@@ -87,6 +87,7 @@ TCC 把「辅助功能」和「屏幕录制」授权归属到 LaunchServices 启
 | `LUMI_FORCE_OFFLINE=1` | 假装断网，用来跑离线回退这条路径 |
 | `LUMI_PANEL_CONTENT=settings` | 把设置界面塞进面板窗口 —— 设置是独立 scene，脚本打不开也拍不到（agent app 里 `showSettingsWindow:` 不起作用） |
 | `LUMI_SETTINGS_TAB=services` | 指定打开哪个标签页 |
+| `LUMI_SHOT_TARGET=widest` | `LUMI_WINDOW_SHOT` 改拍**最大的非面板窗口**（也就是工作台）；不设时拍面板 |
 | `LUMI_DRAG_MAP=1` | 把可拖动区域打成一张 ASCII 覆盖图 —— 拖动区是透明的，不画出来只能靠猜 |
 | `LUMI_SHOW_WORKBENCH=1` | 打开工作台；配 `LUMI_WORKBENCH_ENGINE=online\|offline` 选引擎 |
 | `LUMI_WORKBENCH_FILE=<路径>` | 载入一篇 .txt / .md；配 `LUMI_WORKBENCH_TRANSLATE=1` 和 `LUMI_WORKBENCH_REPORT=<路径>` 翻完写逐段报告 |
@@ -399,6 +400,95 @@ appex 转发时一样）。本地测试页覆盖导航栏、代码块、嵌套�
 
 已知限制：译文不保留链接和加粗；「仅译文」对上面那种混排文字不生效（藏不掉又不能包）；
 不处理 iframe 里的内容。
+
+## 界面语言
+
+界面有中文和英文两套，在「设置 › 通用 › 界面语言」里切换，**立即生效、不用重启**。
+只影响界面文字：发给模型的提示词、维基词典解析、词典格式判断、以及用户自己的文档
+内容都跟这个设置无关。
+
+### 为什么不用 `Localizable.strings`
+
+`String(localized:)` + `.lproj` 这套依赖 Xcode 的资源处理，而这个项目刻意只用
+Command Line Tools（`@Stored` 那个 shim 就是同一个原因）。更要紧的是：**运行时切换**。
+`Bundle.main` 查表是按启动时的语言定的，用户改完还得重启，而"改个语言要重启"
+正是这类小工具最不该有的体验。
+
+所以文案表直接用 Swift 写（`Core/Strings*.swift`），编译期就能查错，运行时随时换。
+
+### 它长什么样
+
+```swift
+Text(t("设置"))                        // 中文原文当 key
+t("已翻译 %d 段", n)                    // 占位符用 String(format:) 规则
+tDetached("缺少 %@ 的 API Key", name)   // 非 main actor 上下文
+```
+
+- **首次启动跟随系统**：系统语言是中文就给中文，其余给英文（`AppLanguage.systemDefault`）；
+  用户一旦在设置里选过，就以他的选择为准。
+- **key 就是中文原文本身。** 这样加文案不用先起名字（`settings.appearance.title` 那种），
+  也不会出现"改了中文忘了改 key"这种漂移。
+- **查不到英文就回落中文**：宁可显示中文，也不要显示 key 或空白 —— 于是漏翻是
+  "不完整"，不是"坏掉"。
+- 表按区域分成 `Core/UI/Workbench/Etymology/Translate` 五六个文件，运行时合并，
+  几个人同时加文案不会改到同一个文件。
+
+### 两个入口，因为线程
+
+`t()` 标了 `@MainActor`，它读的是 `Localization.shared.language` —— 视图读它就会在
+切换语言时**自动重绘**（`@Observable` 的依赖追踪）。
+
+但有些文案是在非隔离上下文里拼出来的：`TranslationProvider.availability(for:)` 返回的
+"缺少 API Key"、`WorkbenchEngine` 的状态、`PageTranslator` 给扩展的错误信息。这些地方
+用 `tDetached()`，它读的是一个 `Mutex` 里的语言快照（`Synchronization.Mutex`，
+`PageTranslator` 里本来就在用）。两条路查同一张表。
+
+### 一个刻意的设计：语言不放在 `AppSettings` 里
+
+语言存在 `Localization` 自己身上（`UserDefaults` key `appLanguage`）。放在 `AppSettings`
+里更"整齐"，但实测两次：**只要 `AppSettings.swift` 里出现对 `Localization` 的引用**，
+那个文件的类型检查就会在 `activeProviders()` 的 `compactMap` 上崩掉，报
+`generic parameter 'ElementOfResult' could not be inferred` —— 那是 Swift 类型检查器
+在这种"互相引用的全局单例 + 泛型闭包"组合下的老毛病。分开之后两个文件都干净。
+（`AppSettings` 也不该知道工作台；菜单重建是 `WorkbenchController` 自己观察语言来做的。）
+
+### AppKit 菜单要手动重建
+
+窗口里的文字是 SwiftUI 画的，会自己更新；但菜单栏（「文件」「编辑」「撤销」那一套）
+是 `NSMenu`，不会跟着 `@Observable` 重绘。`WorkbenchController` 用
+`withObservationTracking` 观察 `Localization.shared.language`，变了就重建菜单
+（`onChange` 在值改变**之前**触发，所以跳到下一个 tick 再读）。
+
+### 守卫会检查这张表
+
+`scripts/security-scan.py` 的 `invariants` 阶段会核对五件事，缺一个 CI 就红：
+
+1. 每个 `t("…")` / `tDetached("…")` 都有英文条目（否则英文界面会漏出中文）
+2. 表里没有没人用的条目（key 打错字就是这个症状）
+3. key 里必须真有中文（把英文或变量包进 `t()` 会被抓出来）
+4. 同一句中文不能在两处被译成**不同**英文（合并成一张表时顺序会静默决定谁生效）
+5. 英文值里不能再有中文——最常见的是中文标点（`「」`、`：`、`（）`）被原样留下
+
+这也意味着一条隐含约定：**`t()` 的实参必须是字面量**。像"维基给的词性 token → 本地名称"
+这种映射（`EtymologyEntry` 里的名词/动词/…）不能走 `t(变量)`——守卫看不见那种 key，
+漏译也查不出来；它们走"按语言选一张表"的做法（同 `LanguageNames`）。
+
+### 已知限制
+
+- **切换语言不会回头改写已经存下来的数据**：文档的引擎名、校对者名、词源缓存里的
+  本地化释义都是"写入时定稿"的，旧文档/旧的最近查阅会保持原语言，直到重新翻译或重新取数。
+- **设置窗口拍不到**：它是独立 scene，而后台 agent app（`LSUIElement`）在 macOS 27 上
+  `activate()` 不会真的激活它（实测：`sendSettingsWindow:` 返回 true，但 `active=false`、
+  `windows=0`）。要看设置界面就用 `LUMI_PANEL_CONTENT=settings` 把它塞进面板窗口再截图。
+
+### 加一条文案
+
+1. 把中文字面量包起来：`Text("设置")` → `Text(t("设置"))`
+2. 插值改占位符：`"已翻译 \(n) 段"` → `t("已翻译 %d 段", n)`
+3. 到对应区域的 `Strings*.swift` 里加一条：`"设置": "Settings",`
+4. 非 main actor 上下文用 `tDetached(...)`
+5. **不要翻译**：注释、日志、LLM 提示词、HTTP/维基参数、词典解析、厂商名、
+   语言名 endonym（`简体中文`/`English` 保持各自写法——语言选择器里必须一眼认得出自己）
 
 ## 图标
 

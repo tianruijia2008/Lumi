@@ -16,6 +16,7 @@ struct EtymologyTeaser: Equatable, Sendable {
     let word: String
     let steps: [Step]
 
+    @MainActor
     init?(_ entry: EtymologyEntry) {
         guard let oldest = entry.oldestRecorded, oldest.lang != "en" else { return nil }
         var steps = [Step(language: oldest.language, form: oldest.form,

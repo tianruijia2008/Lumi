@@ -26,16 +26,16 @@ struct PageTranslationSettings: View {
                     stepRow(step)
                 }
             } header: {
-                Text("开启步骤")
+                Text(t("开启步骤"))
             } footer: {
                 Text(connected
-                     ? "扩展已经连上 Lumi。Safari 重新启动后如果扩展不见了，重做第 1 步。"
-                     : "Lumi 用免费开发者证书签名，所以 Safari 每次重新启动后都要再勾一次第 1 步。")
+                     ? t("扩展已经连上 Lumi。Safari 重新启动后如果扩展不见了，重做第 1 步。")
+                     : t("Lumi 用免费开发者证书签名，所以 Safari 每次重新启动后都要再勾一次第 1 步。"))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
-                Picker("大模型", selection: $settings.workbenchOnlineService) {
+                Picker(t("大模型"), selection: $settings.workbenchOnlineService) {
                     Text(autoLabel).tag(ServiceKind?.none)
                     ForEach(llms) { kind in
                         Text(kind.displayName).tag(ServiceKind?.some(kind))
@@ -43,35 +43,30 @@ struct PageTranslationSettings: View {
                 }
                 .disabled(llms.isEmpty)
 
-                LabeledContent("选「自动」时依次尝试") { chain }
+                LabeledContent(t("选「自动」时依次尝试")) { chain }
             } header: {
-                Text("翻译引擎")
+                Text(t("翻译引擎"))
             } footer: {
-                Text(llms.isEmpty ? """
-                还没有启用语言模型，扩展会用本机翻译。在「翻译服务」里开启一个 \
-                （如 DeepSeek）并填好 API Key，网页就能按上下文翻译。
-                """ : """
-                与工作台共用。大模型会读到网页标题、上一段和你在扩展里写的说明，\
-                术语前后一致；本机翻译离线、免费，但只能逐句翻。\
-                「自动」挑第一个能用的，Lumi 没开时直接用 Google。
-                """)
-                .font(.caption).foregroundStyle(.secondary)
+                Text(llms.isEmpty
+                     ? t("还没有启用语言模型，扩展会用本机翻译。在「翻译服务」里开启一个 （如 DeepSeek）并填好 API Key，网页就能按上下文翻译。")
+                     : t("与工作台共用。大模型会读到网页标题、上一段和你在扩展里写的说明，术语前后一致；本机翻译离线、免费，但只能逐句翻。「自动」挑第一个能用的，Lumi 没开时直接用 Google。"))
+                    .font(.caption).foregroundStyle(.secondary)
             }
 
             Section {
-                LabeledContent("翻译整页 / 显示原文") { Keycap("⌥T") }
-                LabeledContent("只翻译指针下的那一段") {
+                LabeledContent(t("翻译整页 / 显示原文")) { Keycap("⌥T") }
+                LabeledContent(t("只翻译指针下的那一段")) {
                     HStack(spacing: 5) {
-                        Text("轻点").font(.caption).foregroundStyle(.secondary)
+                        Text(t("轻点")).font(.caption).foregroundStyle(.secondary)
                         Keycap("⌥")
                     }
                 }
-                LabeledContent("译文样式、语言、每个网站的说明") {
-                    Text("Safari 工具栏里的 Lumi 按钮")
+                LabeledContent(t("译文样式、语言、每个网站的说明")) {
+                    Text(t("Safari 工具栏里的 Lumi 按钮"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
             } header: {
-                Text("在网页上")
+                Text(t("在网页上"))
             }
         }
         .formStyle(.grouped)
@@ -98,7 +93,7 @@ struct PageTranslationSettings: View {
                 }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("Lumi 网页翻译")
+                Text(t("Lumi 网页翻译"))
                     .font(.headline)
                 HStack(spacing: 6) {
                     BridgeDot(tone: headline.tone)
@@ -118,7 +113,7 @@ struct PageTranslationSettings: View {
 
             Spacer(minLength: 8)
 
-            Button("在 Safari 中设置") { openInSafari() }
+            Button(t("在 Safari 中设置")) { openInSafari() }
                 .controlSize(.regular)
         }
         .padding(.vertical, 4)
@@ -128,16 +123,16 @@ struct PageTranslationSettings: View {
 
     private var headline: (text: String, tone: BridgeDot.Tone) {
         if case .failed(let why) = bridge.state {
-            return ("端口 \(PageBridge.port) 不可用：\(why)", .bad)
+            return (t("端口 %d 不可用：%@", Int(PageBridge.port), why), .bad)
         }
-        if bridge.state == .stopped { return ("Lumi 的网页接口没有启动", .bad) }
+        if bridge.state == .stopped { return (t("Lumi 的网页接口没有启动"), .bad) }
         if connected {
             return bridge.paragraphsServed == 0
-                ? ("已连接，按 ⌥T 翻译当前网页", .ok)
-                : ("已连接 · 本次启动翻译了 \(bridge.paragraphsServed) 段", .ok)
+                ? (t("已连接，按 ⌥T 翻译当前网页"), .ok)
+                : (t("已连接 · 本次启动翻译了 %d 段", bridge.paragraphsServed), .ok)
         }
-        if extensionEnabled == true { return ("扩展已开启，打开或刷新一个网页", .waiting) }
-        return ("等待 Safari 扩展连接", .idle)
+        if extensionEnabled == true { return (t("扩展已开启，打开或刷新一个网页"), .waiting) }
+        return (t("等待 Safari 扩展连接"), .idle)
     }
 
     // MARK: Steps
@@ -151,17 +146,17 @@ struct PageTranslationSettings: View {
 
         var title: String {
             switch self {
-            case .allowUnsigned: "Safari 设置 › 开发者 › 勾选「允许未签名的扩展」"
-            case .enable:        "Safari 设置 › 扩展 › 勾选「Lumi 网页翻译」"
-            case .openPage:      "允许它访问网站，然后刷新网页"
+            case .allowUnsigned: tDetached("Safari 设置 › 开发者 › 勾选「允许未签名的扩展」")
+            case .enable:        tDetached("Safari 设置 › 扩展 › 勾选「Lumi 网页翻译」")
+            case .openPage:      tDetached("允许它访问网站，然后刷新网页")
             }
         }
 
         var detail: String? {
             switch self {
-            case .allowUnsigned: "看不到「开发者」：先在「高级」里勾选「显示网页开发者功能」"
+            case .allowUnsigned: tDetached("看不到「开发者」：先在「高级」里勾选「显示网页开发者功能」")
             case .enable:        nil
-            case .openPage:      "网页右侧出现 Lumi 的玻璃按钮，就是连上了"
+            case .openPage:      tDetached("网页右侧出现 Lumi 的玻璃按钮，就是连上了")
             }
         }
     }
@@ -251,12 +246,12 @@ struct PageTranslationSettings: View {
         }
         let online = engines.first { $0.id == WorkbenchEngineID.online.rawValue }
         return [
-            ChainLink(name: online?.name ?? llms.first?.displayName ?? "大模型", symbol: "sparkle",
+            ChainLink(name: online?.name ?? llms.first?.displayName ?? t("大模型"), symbol: "sparkle",
                  tone: tone(WorkbenchEngineID.online.rawValue), help: help(WorkbenchEngineID.online.rawValue)),
-            ChainLink(name: "本机", symbol: "desktopcomputer",
+            ChainLink(name: t("本机"), symbol: "desktopcomputer",
                  tone: tone(WorkbenchEngineID.offline.rawValue), help: help(WorkbenchEngineID.offline.rawValue)),
             ChainLink(name: "Google", symbol: "globe", tone: .ok,
-                 help: "不需要 Lumi；逐句翻译，读不到上下文"),
+                 help: t("不需要 Lumi；逐句翻译，读不到上下文")),
         ]
     }
 
@@ -265,7 +260,7 @@ struct PageTranslationSettings: View {
     }
 
     private var autoLabel: String {
-        llms.first.map { "自动（\($0.displayName)）" } ?? "自动"
+        llms.first.map { t("自动（%@）", $0.displayName) } ?? t("自动")
     }
 
     // MARK: Observation
@@ -294,7 +289,7 @@ struct PageTranslationSettings: View {
     private func openInSafari() {
         Task {
             let shown = await SafariExtension.showSettings()
-            openError = shown ? nil : "Safari 还没发现这个扩展。先完成第 1 步，再点一次。"
+            openError = shown ? nil : t("Safari 还没发现这个扩展。先完成第 1 步，再点一次。")
         }
     }
 }

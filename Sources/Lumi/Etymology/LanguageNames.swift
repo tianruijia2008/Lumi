@@ -1,12 +1,19 @@
 import Foundation
 
-/// Wiktionary's language codes, named the way a Chinese reader would name them.
+/// Wiktionary's language codes, named the way the reader names them: a Chinese
+/// reader sees 拉丁语, an English reader sees Latin.
 ///
 /// Only the languages English actually descends through or borrows from often
 /// enough to appear in a chain. Anything else falls back to the name Wiktionary
 /// itself printed, which is English but at least correct.
+///
+/// `name` is `@MainActor` because it reads `Localization.shared.language`; the
+/// callers that use it (views, the teaser, the narration material) all run on
+/// the main actor, so nothing non-isolated is left needing a name.
 enum LanguageNames {
+    @MainActor
     static func name(_ code: String, fallback: String? = nil) -> String {
+        let table = Localization.shared.language == .en ? english : chinese
         if let known = table[code] { return known }
         // Wiktionary's etymology-only codes are dotted variants of a real one
         // (`la-lat`, `la-med`); the base name is closer than no name.
@@ -17,7 +24,7 @@ enum LanguageNames {
         return fallback ?? code
     }
 
-    private static let table: [String: String] = [
+    private static let chinese: [String: String] = [
         "en": "英语", "enm": "中古英语", "ang": "古英语", "sco": "苏格兰语",
         "fr": "法语", "frm": "中古法语", "fro": "古法语", "xno": "盎格鲁-诺曼语",
         "nrf": "诺曼语", "pro": "古奥克语", "oc": "奥克语", "frk": "法兰克语",
@@ -43,6 +50,34 @@ enum LanguageNames {
         "gmq-pro": "原始北日耳曼语", "itc-pro": "原始意大利语", "cel-pro": "原始凯尔特语",
         "grk-pro": "原始希腊语", "sla-pro": "原始斯拉夫语", "ine-bsl-pro": "原始波罗的-斯拉夫语",
         "iir-pro": "原始印度-伊朗语", "sem-pro": "原始闪米特语", "urj-pro": "原始乌拉尔语",
+    ]
+
+    private static let english: [String: String] = [
+        "en": "English", "enm": "Middle English", "ang": "Old English", "sco": "Scots",
+        "fr": "French", "frm": "Middle French", "fro": "Old French", "xno": "Anglo-Norman",
+        "nrf": "Norman", "pro": "Old Occitan", "oc": "Occitan", "frk": "Frankish",
+        "la": "Latin", "la-lat": "Late Latin", "la-med": "Medieval Latin", "la-vul": "Vulgar Latin",
+        "la-new": "New Latin", "la-cla": "Classical Latin", "LL.": "Late Latin", "ML.": "Medieval Latin",
+        "VL.": "Vulgar Latin", "NL.": "New Latin",
+        "grc": "Ancient Greek", "grc-koi": "Koine Greek", "el": "Greek", "gkm": "Medieval Greek",
+        "it": "Italian", "es": "Spanish", "pt": "Portuguese", "ca": "Catalan", "ro": "Romanian",
+        "de": "German", "goh": "Old High German", "gmh": "Middle High German", "nl": "Dutch", "dum": "Middle Dutch",
+        "odt": "Old Dutch", "osx": "Old Saxon", "gml": "Middle Low German", "nds": "Low German", "fy": "Frisian",
+        "ofs": "Old Frisian", "non": "Old Norse", "is": "Icelandic", "da": "Danish", "sv": "Swedish",
+        "no": "Norwegian", "nb": "Norwegian Bokmål", "nn": "Norwegian Nynorsk", "got": "Gothic",
+        "ga": "Irish", "sga": "Old Irish", "mga": "Middle Irish", "gd": "Scottish Gaelic",
+        "cy": "Welsh", "br": "Breton", "kw": "Cornish",
+        "ru": "Russian", "pl": "Polish", "cs": "Czech", "cu": "Old Church Slavonic",
+        "ar": "Arabic", "fa": "Persian", "pal": "Middle Persian", "peo": "Old Persian",
+        "he": "Hebrew", "hbo": "Biblical Hebrew", "arc": "Aramaic", "akk": "Akkadian",
+        "sa": "Sanskrit", "hi": "Hindi", "ur": "Urdu", "pi": "Pali", "ta": "Tamil",
+        "tr": "Turkish", "ota": "Ottoman Turkish", "hu": "Hungarian", "fi": "Finnish",
+        "ja": "Japanese", "zh": "Chinese", "cmn": "Mandarin", "yue": "Cantonese", "nan": "Min Nan", "ko": "Korean",
+        "ms": "Malay", "tl": "Tagalog", "nah": "Nahuatl", "qu": "Quechua", "egy": "Egyptian",
+        "ine-pro": "Proto-Indo-European", "gem-pro": "Proto-Germanic", "gmw-pro": "Proto-West Germanic",
+        "gmq-pro": "Proto-North Germanic", "itc-pro": "Proto-Italic", "cel-pro": "Proto-Celtic",
+        "grk-pro": "Proto-Greek", "sla-pro": "Proto-Slavic", "ine-bsl-pro": "Proto-Balto-Slavic",
+        "iir-pro": "Proto-Indo-Iranian", "sem-pro": "Proto-Semitic", "urj-pro": "Proto-Uralic",
     ]
 
     /// Codes whose forms are reconstructed as a family rather than recorded.

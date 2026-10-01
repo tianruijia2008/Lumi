@@ -17,8 +17,8 @@ import Translation
 /// sentence-level MT, not a missing feature, and the UI says so.
 struct OfflineWorkbenchEngine: WorkbenchEngine {
     let id = WorkbenchEngineID.offline
-    let displayName = "本机翻译"
-    let detail = "离线可用。逐句翻译，读不到上下文与术语表。"
+    var displayName: String { tDetached("本机翻译") }
+    var detail: String { tDetached("离线可用。逐句翻译，读不到上下文与术语表。") }
     let requiresNetwork = false
     let usesDocumentContext = false
 
@@ -33,13 +33,13 @@ struct OfflineWorkbenchEngine: WorkbenchEngine {
 
     func availability(source: Language, target: Language) async -> ProviderAvailability {
         guard let from = source.localeLanguage, let to = target.localeLanguage else {
-            return .unavailable("语言未指定")
+            return .unavailable(tDetached("语言未指定"))
         }
         switch await LanguageAvailability().status(from: from, to: to) {
         case .installed:   return .ready
-        case .supported:   return .needsSetup("需先在「系统设置 › 通用 › 语言与地区 › 翻译语言」下载语言包")
-        case .unsupported: return .unavailable("系统翻译不支持 \(source.displayName) → \(target.displayName)")
-        @unknown default:  return .unavailable("未知状态")
+        case .supported:   return .needsSetup(tDetached("需先在「系统设置 › 通用 › 语言与地区 › 翻译语言」下载语言包"))
+        case .unsupported: return .unavailable(tDetached("系统翻译不支持 %@ → %@", source.displayName, target.displayName))
+        @unknown default:  return .unavailable(tDetached("未知状态"))
         }
     }
 
@@ -53,7 +53,7 @@ struct OfflineWorkbenchEngine: WorkbenchEngine {
             let task = Task { @MainActor in
                 guard let from = source.localeLanguage else {
                     for job in jobs {
-                        continuation.yield(.failed(index: job.index, message: "不支持的语言"))
+                        continuation.yield(.failed(index: job.index, message: tDetached("不支持的语言")))
                     }
                     continuation.finish()
                     return
@@ -131,7 +131,7 @@ struct OfflineWorkbenchEngine: WorkbenchEngine {
                     }
                 }
                 for job in jobs where !finished.contains(job.index) {
-                    continuation.yield(.failed(index: job.index, message: "本机翻译未返回结果"))
+                    continuation.yield(.failed(index: job.index, message: tDetached("本机翻译未返回结果")))
                 }
                 continuation.finish()
             }

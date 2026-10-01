@@ -322,7 +322,7 @@ final class EtymologyLookup {
         } catch {
             guard !Task.isCancelled else { return }
             let offline = (error as? URLError)?.code == .notConnectedToInternet
-            phase = .failed(offline ? "需要联网才能查 Wiktionary。" : error.localizedDescription)
+            phase = .failed(offline ? t("需要联网才能查 Wiktionary。") : error.localizedDescription)
             return
         }
         tasks.append(Task { await self.loadKin() })
@@ -422,12 +422,12 @@ final class EtymologyLookup {
             return
         }
         guard let provider = AppSettings.shared.workbenchOnlineProvider() else {
-            narration = .unavailable("还没有启用语言模型。在设置里开启一个并填好 API Key，或改用本机。")
+            narration = .unavailable(t("还没有启用语言模型。在设置里开启一个并填好 API Key，或改用本机。"))
             return
         }
         if !force, narration == .done, entry.narrator == provider.displayName, !narrationText.isEmpty { return }
         guard NetworkMonitor.shared.isOnline || !provider.requiresNetwork else {
-            narration = .unavailable("当前离线，讲解需要联网。下面的资料不受影响。")
+            narration = .unavailable(t("当前离线，讲解需要联网。下面的资料不受影响。"))
             return
         }
         narrationTask?.cancel()
@@ -455,7 +455,7 @@ final class EtymologyLookup {
                     }
                 }
                 narrationText = narrationText.trimmingCharacters(in: .whitespacesAndNewlines)
-                narration = narrationText.isEmpty ? .failed("模型没有返回内容") : .done
+                narration = narrationText.isEmpty ? .failed(t("模型没有返回内容")) : .done
                 if narration == .done {
                     let text = narrationText, name = provider.displayName
                     update { $0.narration = text; $0.narrator = name }
@@ -504,6 +504,7 @@ enum EtymologyNarration {
         """
     }
 
+    @MainActor
     static func material(for entry: EtymologyEntry) -> String {
         var lines = ["Word: \(entry.word)\(entry.partOfSpeech.map { " (\($0))" } ?? "")"]
         if !entry.chain.isEmpty {

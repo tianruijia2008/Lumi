@@ -29,7 +29,7 @@ struct WebProvider: TranslationProvider {
             let (data, response) = try await URLSession.shared.data(for: urlRequest)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 let code = (response as? HTTPURLResponse)?.statusCode ?? -1
-                throw TranslationFailure.badResponse(code, "在线翻译不可用")
+                throw TranslationFailure.badResponse(code, tDetached("在线翻译不可用"))
             }
             // Shape: [[["译文","原文",...], ...], ...] — segments must be joined.
             guard let root = try JSONSerialization.jsonObject(with: data) as? [Any],

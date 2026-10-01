@@ -6,9 +6,9 @@ enum AppearanceMode: String, CaseIterable, Codable, Sendable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .system: "跟随系统"
-        case .light:  "浅色"
-        case .dark:   "深色"
+        case .system: tDetached("跟随系统")
+        case .light:  tDetached("浅色")
+        case .dark:   tDetached("深色")
         }
     }
 

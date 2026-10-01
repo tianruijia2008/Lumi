@@ -8,8 +8,8 @@ enum Wiktionary {
 
         var errorDescription: String? {
             switch self {
-            case .missing:               "Wiktionary 没有这个词条"
-            case .badResponse(let why):  "Wiktionary 返回异常：\(why)"
+            case .missing:               tDetached("Wiktionary 没有这个词条")
+            case .badResponse(let why):  tDetached("Wiktionary 返回异常：%@", why)
             }
         }
     }
@@ -21,7 +21,7 @@ enum Wiktionary {
         let json = try await call(["action": "parse", "page": title, "prop": "wikitext|text", "redirects": "1"])
         guard let parse = json["parse"] as? [String: Any] else { throw failure(json) }
         guard let wikitext = parse["wikitext"] as? String, let html = parse["text"] as? String else {
-            throw Failure.badResponse("缺少正文")
+            throw Failure.badResponse(tDetached("缺少正文"))
         }
         return (wikitext, html)
     }
@@ -67,13 +67,13 @@ enum Wiktionary {
             throw Failure.badResponse("HTTP \(http.statusCode)")
         }
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw Failure.badResponse("无法解析")
+            throw Failure.badResponse(tDetached("无法解析"))
         }
         return json
     }
 
     private static func failure(_ json: [String: Any]) -> Failure {
         let code = (json["error"] as? [String: Any])?["code"] as? String
-        return code == "missingtitle" ? .missing : .badResponse(code ?? "未知错误")
+        return code == "missingtitle" ? .missing : .badResponse(code ?? tDetached("未知错误"))
     }
 }

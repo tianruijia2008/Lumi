@@ -29,7 +29,7 @@ struct WorkbenchView: View {
         .task(id: windowTitle) { onTitleChange(windowTitle) }
     }
 
-    private var windowTitle: String { document.isLoaded ? document.title : "工作台" }
+    private var windowTitle: String { document.isLoaded ? document.title : t("工作台") }
 
 
     // MARK: - Reading
@@ -122,7 +122,7 @@ struct WorkbenchView: View {
 
             IconButton(
                 symbol: document.context.isEmpty ? "text.alignleft" : "text.badge.checkmark",
-                help: document.isProof ? "文档说明与术语表" : "文档说明：领域、术语、语体",
+                help: document.isProof ? t("文档说明与术语表") : t("文档说明：领域、术语、语体"),
                 active: showNotes || !document.context.isEmpty
             ) {
                 withAnimation(Motion.settle) { showNotes.toggle() }
@@ -142,9 +142,9 @@ struct WorkbenchView: View {
     @ViewBuilder
     private var reviewChip: some View {
         if !document.isProof, !document.isRunning, document.doneCount > 0 {
-            ActionChip(title: document.hasReview ? "重新校对" : "校对", symbol: "checkmark.seal",
+            ActionChip(title: document.hasReview ? t("重新校对") : t("校对"), symbol: "checkmark.seal",
                        prominent: false) { document.review() }
-                .help(document.reviewsWithModel ? "逐段审读译文，并做机检" : "机检：数字、术语表、格式、篇幅")
+                .help(document.reviewsWithModel ? t("逐段审读译文，并做机检") : t("机检：数字、术语表、格式、篇幅"))
                 .transition(.opacity)
         }
     }
@@ -153,25 +153,25 @@ struct WorkbenchView: View {
     private var actionChip: some View {
         let total = document.workSegments.count
         if document.isRunning {
-            ActionChip(title: "停止", symbol: "stop.fill", prominent: false) { document.cancel() }
+            ActionChip(title: t("停止"), symbol: "stop.fill", prominent: false) { document.cancel() }
         } else if document.isProof {
             if document.hasReview {
-                ActionChip(title: "重新校对", symbol: "arrow.clockwise", prominent: false) { document.review() }
+                ActionChip(title: t("重新校对"), symbol: "arrow.clockwise", prominent: false) { document.review() }
                     .keyboardShortcut(.return, modifiers: .command)
             } else {
-                ActionChip(title: "校对", symbol: "checkmark.seal", prominent: true) { document.review() }
+                ActionChip(title: t("校对"), symbol: "checkmark.seal", prominent: true) { document.review() }
                     .keyboardShortcut(.return, modifiers: .command)
             }
         } else if document.doneCount == total {
-            ActionChip(title: "重译全文", symbol: "arrow.clockwise", prominent: false) {
+            ActionChip(title: t("重译全文"), symbol: "arrow.clockwise", prominent: false) {
                 document.translateAll()
             }
             .keyboardShortcut(.return, modifiers: .command)
         } else if document.doneCount == 0 {
-            ActionChip(title: "翻译", symbol: "sparkles", prominent: true) { document.translateAll() }
+            ActionChip(title: t("翻译"), symbol: "sparkles", prominent: true) { document.translateAll() }
                 .keyboardShortcut(.return, modifiers: .command)
         } else {
-            ActionChip(title: "继续", symbol: "play.fill", prominent: true) {
+            ActionChip(title: t("继续"), symbol: "play.fill", prominent: true) {
                 document.retryUnfinished()
             }
             .keyboardShortcut(.return, modifiers: .command)
@@ -180,22 +180,22 @@ struct WorkbenchView: View {
 
     private var overflowMenu: some View {
         Menu {
-            Button(document.format == .markdown ? "复制全部译文（Markdown）" : "复制全部译文") {
+            Button(document.format == .markdown ? t("复制全部译文（Markdown）") : t("复制全部译文")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(document.exportedTranslation, forType: .string)
             }
             .disabled(document.exportedTranslation.isEmpty)
-            Button("导出译文…") { WorkbenchController.shared.exportTranslation() }
+            Button(t("导出译文…")) { WorkbenchController.shared.exportTranslation() }
                 .disabled(document.exportedTranslation.isEmpty)
             if document.hasReview {
-                Button("复制校对意见") {
+                Button(t("复制校对意见")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(document.reviewReport, forType: .string)
                 }
                 .disabled(document.openIssueCount == 0)
             }
             Divider()
-            Button("换一篇…") { WorkbenchController.shared.navigation.go(.home) }
+            Button(t("换一篇…")) { WorkbenchController.shared.navigation.go(.home) }
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 11, weight: .semibold))
@@ -281,7 +281,7 @@ private struct DirectionChip: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .chipShell()
-        .help("按文章开头自动判断，整篇统一")
+        .help(t("按文章开头自动判断，整篇统一"))
     }
 }
 
@@ -304,7 +304,7 @@ struct EngineSwitch: View {
             disabled: document.isRunning,
             help: detail
         )
-        .help(document.isRunning ? "翻译进行中，停止后才能换引擎" : "")
+        .help(document.isRunning ? t("翻译进行中，停止后才能换引擎") : "")
     }
 
     private var unconfigured: Bool { AppSettings.shared.workbenchOnlineProvider() == nil }
@@ -314,9 +314,9 @@ struct EngineSwitch: View {
         case .offline: return OfflineWorkbenchEngine().detail
         case .online:
             guard let provider = AppSettings.shared.workbenchOnlineProvider() else {
-                return "尚未启用任何语言模型，请先在设置里开启一个并填好 Key。"
+                return t("尚未启用任何语言模型，请先在设置里开启一个并填好 Key。")
             }
-            return "\(provider.displayName)：读得到标题、术语表和上下段，术语前后一致。需要联网。"
+            return t("%@：读得到标题、术语表和上下段，术语前后一致。需要联网。", provider.displayName)
         }
     }
 }
@@ -349,7 +349,7 @@ private struct StatusReadout: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 9))
-                        Text(document.isProof ? "\(attention) 处待改" : "\(attention) 处待查")
+                        Text(document.isProof ? t("%d 处待改", attention) : t("%d 处待查", attention))
                             .font(Chrome.chipFont)
                             .monospacedDigit()
                     }
@@ -360,20 +360,20 @@ private struct StatusReadout: View {
                     .contentShape(.capsule)
                 }
                 .buttonStyle(.plain)
-                .help("跳到下一处要看的段落")
+                .help(t("跳到下一处要看的段落"))
                 .fixedSize()
                 .transition(.scale.combined(with: .opacity))
             } else if document.hasReview, !document.isRunning {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.seal.fill").font(.system(size: 9.5))
-                    Text("无待改").font(Chrome.chipFont)
+                    Text(t("无待改")).font(Chrome.chipFont)
                 }
                 .foregroundStyle(.green)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background { Capsule().fill(Color.green.opacity(0.1)) }
                 .fixedSize()
-                .help("校对完，没有未处理的意见")
+                .help(t("校对完，没有未处理的意见"))
                 .transition(.scale.combined(with: .opacity))
             }
         }
@@ -383,17 +383,17 @@ private struct StatusReadout: View {
     private var line: String {
         let total = document.workSegments.count
         if document.activity == .reviewing {
-            return "已校 \(document.reviewedCount + document.reviewFailedCount)/\(total) 段"
+            return t("已校 %d/%d 段", document.reviewedCount + document.reviewFailedCount, total)
         }
-        if document.checkingTerms { return "全文比对术语…" }
+        if document.checkingTerms { return t("全文比对术语…") }
         if document.isProof {
-            return document.hasReview ? "\(total) 段 · \(document.reviewerLabel)" : "\(total) 段"
+            return document.hasReview ? t("%d 段 · %@", total, document.reviewerLabel) : t("%d 段", total)
         }
         let done = document.doneCount
         let engine = document.engineID == .online
             ? AppSettings.shared.workbenchOnlineProvider()?.displayName
             : nil
-        let counts = done == 0 || done == total ? "\(total) 段" : "\(done)/\(total) 段"
+        let counts = done == 0 || done == total ? t("%d 段", total) : t("%d/%d 段", done, total)
         return [engine, counts].compactMap(\.self).joined(separator: " · ")
     }
 }
@@ -412,7 +412,7 @@ private struct NotesStrip: View {
     var body: some View {
         let usable = document.engine.usesDocumentContext
         VStack(alignment: .leading, spacing: 5) {
-            TextField("这是一篇什么文章？术语、语体上有什么要求？术语表每行一条，如 attention = 注意力",
+            TextField(t("这是一篇什么文章？术语、语体上有什么要求？术语表每行一条，如 attention = 注意力"),
                       text: $document.context, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
@@ -438,11 +438,11 @@ private struct NotesStrip: View {
     /// that half works.
     private func caption(usable: Bool) -> String {
         let terms = ProofCheck.glossary(from: document.context).count
-        let glossary = terms > 0 ? "识别到 \(terms) 条术语，校对时逐段核对。" : ""
+        let glossary = terms > 0 ? t("识别到 %d 条术语，校对时逐段核对。", terms) : ""
         if document.isProof {
-            return glossary + (usable ? "改完之后重新校对才会生效。" : "本机只核对术语表；其余说明要联网模型才读得到。")
+            return glossary + (usable ? t("改完之后重新校对才会生效。") : t("本机只核对术语表；其余说明要联网模型才读得到。"))
         }
-        return glossary + (usable ? "改完之后重译才会生效。" : "本机翻译逐句工作，读不到这些说明——换成联网才会用上。")
+        return glossary + (usable ? t("改完之后重译才会生效。") : t("本机翻译逐句工作，读不到这些说明——换成联网才会用上。"))
     }
 }
 
@@ -464,7 +464,7 @@ private struct EngineProblemCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
             SettingsLink {
-                Text("打开设置")
+                Text(t("打开设置"))
                     .font(Chrome.chipFont)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 4)

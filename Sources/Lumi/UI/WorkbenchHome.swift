@@ -54,13 +54,13 @@ struct WorkbenchHome: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("开始").font(.system(size: 14, weight: .semibold))
-            Text("逐段对照读长文、校对别人的译文、追一个词的来历")
+            Text(t("开始")).font(.system(size: 14, weight: .semibold))
+            Text(t("逐段对照读长文、校对别人的译文、追一个词的来历"))
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             Spacer(minLength: 10)
-            Text("新文稿用").font(Chrome.chipFont).foregroundStyle(.tertiary)
+            Text(t("新文稿用")).font(Chrome.chipFont).foregroundStyle(.tertiary)
             EngineSwitch(document: document)
         }
         .padding(.horizontal, 16)
@@ -80,7 +80,7 @@ struct WorkbenchHome: View {
                                 : AnyLayout(HStackLayout(alignment: .top, spacing: 28))
             layout {
                 VStack(alignment: .leading, spacing: 0) {
-                    SectionHead(title: "最近文稿", note: docs.isEmpty ? nil : "译文存在本机，重开不再花钱")
+                    SectionHead(title: t("最近文稿"), note: docs.isEmpty ? nil : t("译文存在本机，重开不再花钱"))
                     if docs.isEmpty {
                         FirstRunHint()
                     } else {
@@ -96,7 +96,7 @@ struct WorkbenchHome: View {
 
                 if !words.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
-                        SectionHead(title: "最近查过的词", note: nil)
+                        SectionHead(title: t("最近查过的词"), note: nil)
                         ForEach(words) { recent in
                             WordRow(recent: recent) {
                                 navigation.go(.etymology)
@@ -108,7 +108,7 @@ struct WorkbenchHome: View {
                             etymology.closeWord()
                         } label: {
                             HStack(spacing: 3) {
-                                Text("全部词源")
+                                Text(t("全部词源"))
                                 Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
                             }
                             .font(.system(size: 11.5, weight: .medium))
@@ -128,18 +128,18 @@ struct WorkbenchHome: View {
 
     private var tools: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHead(title: "能做的事", note: nil)
+            SectionHead(title: t("能做的事"), note: nil)
             HStack(alignment: .top, spacing: 14) {
-                ToolTile(title: "通读全文", shortcut: "⌘N",
-                         text: "原文和译文一段对一段。机器悄悄漏掉的句子，会在那一段旁边标出来。") {
+                ToolTile(title: t("通读全文"), shortcut: "⌘N",
+                         text: t("原文和译文一段对一段。机器悄悄漏掉的句子，会在那一段旁边标出来。")) {
                     ReadArt()
                 } action: { navigation.go(.compose) }
-                ToolTile(title: "校对译文", shortcut: "⇧⌘N",
-                         text: "放进原文和别人的译文，逐段标出漏译、错译和前后不一的术语，一键采纳改法。") {
+                ToolTile(title: t("校对译文"), shortcut: "⇧⌘N",
+                         text: t("放进原文和别人的译文，逐段标出漏译、错译和前后不一的术语，一键采纳改法。")) {
                     ProofArt()
                 } action: { navigation.go(.proofCompose) }
-                ToolTile(title: "词源", shortcut: "⌘E",
-                         text: "一个英文单词从哪来、意思怎么一步步变过来，每一步都有历代原句作证。") {
+                ToolTile(title: t("词源"), shortcut: "⌘E",
+                         text: t("一个英文单词从哪来、意思怎么一步步变过来，每一步都有历代原句作证。")) {
                     EtymologyArt()
                 } action: {
                     navigation.go(.etymology)
@@ -197,9 +197,9 @@ private struct NewDocumentCard: View {
                 .frame(width: 44)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 0) {
-                Text("粘贴、拖入，或打开一篇长文")
+                Text(t("粘贴、拖入，或打开一篇长文"))
                     .font(.system(size: 17, weight: .semibold))
-                Text("论文、合同、小说的一章、Markdown 文档都行。在这一页任何地方按 ⌘V，直接进入逐段对照，不用先点输入框。")
+                Text(t("论文、合同、小说的一章、Markdown 文档都行。在这一页任何地方按 ⌘V，直接进入逐段对照，不用先点输入框。"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .lineSpacing(3)
@@ -207,15 +207,15 @@ private struct NewDocumentCard: View {
                     .frame(maxWidth: 470, alignment: .leading)
                     .padding(.top, 7)
                 HStack(spacing: 8) {
-                    HomeButton(title: "粘贴", symbol: "doc.on.clipboard", key: "⌘V", prominent: true) {
+                    HomeButton(title: t("粘贴"), symbol: "doc.on.clipboard", key: "⌘V", prominent: true) {
                         // A click on a button named 粘贴 is a paste the user
                         // asked for, the kind the system lets through.
                         WorkbenchController.shared.paste(nil)
                     }
-                    HomeButton(title: "打开文件…", symbol: "folder", key: "⌘O") {
+                    HomeButton(title: t("打开文件…"), symbol: "folder", key: "⌘O") {
                         WorkbenchController.shared.openFile()
                     }
-                    HomeButton(title: "手动输入", symbol: "square.and.pencil") {
+                    HomeButton(title: t("手动输入"), symbol: "square.and.pencil") {
                         navigation.go(.compose)
                     }
                 }
@@ -231,8 +231,8 @@ private struct DropOverlay: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "arrow.down.to.line").font(.system(size: 22, weight: .medium))
-            Text("松手就开始").font(.system(size: 16, weight: .semibold))
-            Text("文本、Markdown 文件或拖进来的文字都行")
+            Text(t("松手就开始")).font(.system(size: 16, weight: .semibold))
+            Text(t("文本、Markdown 文件或拖进来的文字都行"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         }
@@ -269,7 +269,7 @@ private struct ClipboardCard: View {
                     .foregroundStyle(.tertiary)
                     .padding(.top, 8)
                 Spacer(minLength: 12)
-                link("通读这篇") { WorkbenchController.shared.paste(nil) }
+                link(t("通读这篇")) { WorkbenchController.shared.paste(nil) }
             case .known(let summary):
                 Text(summary.title)
                     .font(.system(size: 14, design: .serif))
@@ -280,7 +280,7 @@ private struct ClipboardCard: View {
                     .font(.system(size: 11))
                     .padding(.top, 8)
                 Spacer(minLength: 12)
-                link(summary.isMidway ? "接着读第 \(summary.readingPosition + 1) 段" : "打开") {
+                link(summary.isMidway ? t("接着读第 %d 段", summary.readingPosition + 1) : t("打开")) {
                     WorkbenchController.shared.openDocument(summary.id)
                 }
             case .word(let word, let hook):
@@ -294,15 +294,15 @@ private struct ClipboardCard: View {
                         .padding(.top, 8)
                 }
                 Spacer(minLength: 12)
-                link("查它的来历") { lookUp(word) }
+                link(t("查它的来历")) { lookUp(word) }
             case .unread:
-                Text("按 ⌘V 或点「粘贴」，直接进入逐段对照。")
+                Text(t("按 ⌘V 或点「粘贴」，直接进入逐段对照。"))
                     .font(.system(size: 12.5))
                     .foregroundStyle(.secondary)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 12)
-                Text("系统不让程序自己读剪贴板。在系统设置的隐私与安全性里允许 Lumi 读取剪贴板，这里就会先给你看前几行。")
+                Text(t("系统不让程序自己读剪贴板。在系统设置的隐私与安全性里允许 Lumi 读取剪贴板，这里就会先给你看前几行。"))
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .lineSpacing(2)
@@ -316,10 +316,10 @@ private struct ClipboardCard: View {
 
     private var heading: String {
         switch content {
-        case .text: "剪贴板里有一篇"
-        case .known: "剪贴板里是读过的一篇"
-        case .word: "剪贴板里是一个词"
-        case .unread: "剪贴板里有文字"
+        case .text: t("剪贴板里有一篇")
+        case .known: t("剪贴板里是读过的一篇")
+        case .word: t("剪贴板里是一个词")
+        case .unread: t("剪贴板里有文字")
         }
     }
 
@@ -343,7 +343,7 @@ private struct FirstRunHint: View {
             Image(systemName: "rectangle.split.2x1")
                 .font(.system(size: 15))
                 .foregroundStyle(.tertiary)
-            Text("读过的文章会留在这里，连同译文和标出的漏译。下次打开工作台，从上次停下的那一段接着读。")
+            Text(t("读过的文章会留在这里，连同译文和标出的漏译。下次打开工作台，从上次停下的那一段接着读。"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -388,7 +388,7 @@ private struct DocumentRow: View {
                 }
                 .frame(width: 140)
 
-                Text(resumes ? "接着读" : DocumentDate.label(summary.modified))
+                Text(resumes ? t("接着读") : DocumentDate.label(summary.modified))
                     .font(.system(size: 11, weight: resumes ? .medium : .regular))
                     .monospacedDigit()
                     .foregroundStyle(resumes ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.tertiary))
@@ -410,18 +410,18 @@ private struct DocumentRow: View {
         .onHover { hovering = $0 }
         .animation(Motion.tap, value: hovering)
         .contextMenu {
-            Button("从最近移除") { DocumentStore.shared.remove(summary.id) }
+            Button(t("从最近移除")) { DocumentStore.shared.remove(summary.id) }
         }
     }
 
     private var meta: some View {
         var parts: [String] = []
-        if summary.isProof { parts.append("校对稿") }
-        if summary.isMidway { parts.append("读到第 \(summary.readingPosition + 1) 段") }
+        if summary.isProof { parts.append(t("校对稿")) }
+        if summary.isMidway { parts.append(t("读到第 %d 段", summary.readingPosition + 1)) }
         parts.append("\(summary.source.displayName) → \(summary.target.displayName)")
         if !summary.engineLabel.isEmpty { parts.append(summary.engineLabel) }
         let notes = summary.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !notes.isEmpty { parts.append("附说明：\(notes.replacingOccurrences(of: "\n", with: " "))") }
+        if !notes.isEmpty { parts.append(t("附说明：%@", notes.replacingOccurrences(of: "\n", with: " "))) }
         return Text(parts.joined(separator: " · "))
             .font(.system(size: 11))
             .foregroundStyle(.tertiary)
@@ -489,29 +489,30 @@ struct DocumentStatusText: View {
     private var text: String {
         let total = summary.segmentCount
         if summary.isProof {
-            if summary.issueCount > 0 { return "\(summary.issueCount) 处待改" }
-            if summary.reviewedCount == 0 { return "未校对 · \(total) 段" }
-            if summary.reviewedCount < total { return "已校 \(summary.reviewedCount) / \(total) 段" }
-            return "校对完 · 无待改"
+            if summary.issueCount > 0 { return t("%d 处待改", summary.issueCount) }
+            if summary.reviewedCount == 0 { return t("未校对 · %d 段", total) }
+            if summary.reviewedCount < total { return t("已校 %d / %d 段", summary.reviewedCount, total) }
+            return t("校对完 · 无待改")
         }
-        if summary.flaggedCount > 0 { return "\(summary.flaggedCount) 段疑似漏译" }
-        if summary.failedCount > 0 { return "\(summary.failedCount) 段没译成" }
-        if summary.issueCount > 0 { return "\(summary.issueCount) 处校对意见" }
-        if summary.doneCount == 0 { return "未翻译 · \(total) 段" }
-        if summary.doneCount < total { return "已译 \(summary.doneCount) / \(total) 段" }
-        return "已译完 · \(total) 段"
+        if summary.flaggedCount > 0 { return t("%d 段疑似漏译", summary.flaggedCount) }
+        if summary.failedCount > 0 { return t("%d 段没译成", summary.failedCount) }
+        if summary.issueCount > 0 { return t("%d 处校对意见", summary.issueCount) }
+        if summary.doneCount == 0 { return t("未翻译 · %d 段", total) }
+        if summary.doneCount < total { return t("已译 %d / %d 段", summary.doneCount, total) }
+        return t("已译完 · %d 段", total)
     }
 }
 
 enum DocumentDate {
+    @MainActor
     static func label(_ date: Date) -> String {
         let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "今天 " + date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)) }
-        if calendar.isDateInYesterday(date) { return "昨天" }
+        if calendar.isDateInToday(date) { return t("今天") + " " + date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits)) }
+        if calendar.isDateInYesterday(date) { return t("昨天") }
         let month = calendar.component(.month, from: date)
         let day = calendar.component(.day, from: date)
-        if calendar.isDate(date, equalTo: Date(), toGranularity: .year) { return "\(month)月\(day)日" }
-        return "\(calendar.component(.year, from: date))年\(month)月\(day)日"
+        if calendar.isDate(date, equalTo: Date(), toGranularity: .year) { return t("%d月%d日", month, day) }
+        return t("%d年%d月%d日", calendar.component(.year, from: date), month, day)
     }
 }
 
@@ -623,7 +624,7 @@ private struct ProofArt: View {
             HStack(spacing: 6) {
                 bar(110)
                 Spacer(minLength: 0)
-                Text("术语不一致")
+                Text(t("术语不一致"))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.orange)
                     .padding(.horizontal, 6)
@@ -650,11 +651,11 @@ private struct ProofArt: View {
 private struct EtymologyArt: View {
     var body: some View {
         HStack(spacing: 8) {
-            step("nescius", "拉丁语 · 无知的", now: false)
+            step("nescius", t("拉丁语 · 无知的"), now: false)
             arrow
-            step("nice", "中古英语 · 愚蠢的", now: false)
+            step("nice", t("中古英语 · 愚蠢的"), now: false)
             arrow
-            step("nice", "今天 · 令人愉快的", now: true)
+            step("nice", t("今天 · 令人愉快的"), now: true)
         }
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -789,9 +790,9 @@ final class ClipboardPeek {
         guard size >= (cjk ? 120 : 40) else { return nil }
         let (format, blocks) = DocumentParser.parse(sample)
         let segments = blocks.count { !$0.kind.isVerbatim }
-        let unit = cjk ? "字" : "词"
+        let unit = cjk ? t("字") : t("词")
         let kind = format == .markdown ? " · Markdown" : ""
-        let stats = "\(language.displayName)\(kind) · \(size.formatted()) \(unit) · 约 \(segments) 段"
+        let stats = "\(language.displayName)\(kind) · \(size.formatted()) \(unit) · \(t("约 %d 段", segments))"
         let preview = text.prefix(400).split(whereSeparator: \.isNewline).joined(separator: " ")
         return .text(preview: preview, stats: stats)
     }

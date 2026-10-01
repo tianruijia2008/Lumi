@@ -10,7 +10,7 @@ struct AppleDictionaryProvider: TranslationProvider {
     let requiresNetwork = false
 
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
-        request.isLookup ? .ready : .notApplicable("查不到")
+        request.isLookup ? .ready : .notApplicable(tDetached("查不到"))
     }
 
     func translate(_ request: TranslationRequest) -> AsyncThrowingStream<TranslationEvent, any Error> {

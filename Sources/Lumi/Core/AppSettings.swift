@@ -240,6 +240,7 @@ final class AppSettings {
                 )
             }
         }
+
     }
 
     /// The provider the workbench's online engine should use.

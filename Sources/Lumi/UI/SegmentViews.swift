@@ -114,7 +114,7 @@ struct SegmentRow: View {
     @ViewBuilder
     private var sourceColumn: some View {
         if segment.source.isEmpty {
-            Text("原文里没有这一段")
+            Text(t("原文里没有这一段"))
                 .font(.system(size: 12 * scale))
                 .italic()
                 .foregroundStyle(.tertiary)
@@ -144,7 +144,7 @@ struct SegmentRow: View {
                     Image(systemName: "checkmark")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(.green.opacity(0.8))
-                        .help("校对过，没有待改")
+                        .help(t("校对过，没有待改"))
                 }
             }
             .frame(width: 44, alignment: .center)
@@ -230,7 +230,7 @@ struct SegmentRow: View {
             ShimmerLines().padding(.trailing, 40)
         case .done:
             if segment.translation.isEmpty {
-                Text(proof ? "译文里没有这一段" : "没有译文")
+                Text(proof ? t("译文里没有这一段") : t("没有译文"))
                     .font(.system(size: 12 * scale))
                     .italic()
                     .foregroundStyle(.tertiary)
@@ -244,10 +244,10 @@ struct SegmentRow: View {
             // trusting it blindly, not to stop them reading it.
             VStack(alignment: .leading, spacing: 7) {
                 if !segment.translation.isEmpty { translated }
-                note(why, tint: .orange, action: "重译", perform: actions.retranslate)
+                note(why, tint: .orange, action: t("重译"), perform: actions.retranslate)
             }
         case .failed(let reason):
-            note(reason, tint: .red, action: "重试", perform: actions.retranslate)
+            note(reason, tint: .red, action: t("重试"), perform: actions.retranslate)
         }
     }
 
@@ -276,15 +276,15 @@ struct SegmentRow: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help("编辑这一段译文")
-            .accessibilityLabel("编辑译文")
+            .help(t("编辑这一段译文"))
+            .accessibilityLabel(t("编辑译文"))
             .transition(.opacity)
         } else if segment.edited, !editing {
-            Text("已改")
+            Text(t("已改"))
                 .font(.system(size: 9.5, weight: .medium))
                 .foregroundStyle(.tertiary)
                 .frame(width: 20, height: 20)
-                .help("这一段的译文改过")
+                .help(t("这一段的译文改过"))
         }
     }
 
@@ -294,11 +294,11 @@ struct SegmentRow: View {
         case .running:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini)
-                Text("审读中…").font(.system(size: 11)).foregroundStyle(.tertiary)
+                Text(t("审读中…")).font(.system(size: 11)).foregroundStyle(.tertiary)
             }
             .transition(.opacity)
         case .failed(let why):
-            note("没校对成：\(why)", tint: .red, action: "重试", perform: actions.review)
+            note(t("没校对成：%@", why), tint: .red, action: t("重试"), perform: actions.review)
         case .none, .done:
             EmptyView()
         }
@@ -315,18 +315,18 @@ struct SegmentRow: View {
                 ForEach(accepted) { issue in
                     HStack(spacing: 5) {
                         Image(systemName: "checkmark").font(.system(size: 8.5, weight: .bold))
-                        Text("已采纳 · 「\(issue.replaced ?? issue.quote)」→「\(issue.suggestion ?? "")」")
+                        Text(t("已采纳 · 「%@」→「%@」", issue.replaced ?? issue.quote, issue.suggestion ?? ""))
                             .lineLimit(1)
                             .truncationMode(.middle)
-                        Button("撤销") { actions.undo(issue.id) }
+                        Button(t("撤销")) { actions.undo(issue.id) }
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.accentColor)
                     }
                 }
                 if dismissed > 0 {
                     HStack(spacing: 5) {
-                        Text("已忽略 \(dismissed) 条")
-                        Button("恢复", action: actions.restoreDismissed)
+                        Text(t("已忽略 %d 条", dismissed))
+                        Button(t("恢复"), action: actions.restoreDismissed)
                             .buttonStyle(.plain)
                             .foregroundStyle(Color.accentColor)
                     }
@@ -380,12 +380,12 @@ struct SegmentRow: View {
                     return .handled
                 }
             HStack(spacing: 8) {
-                ActionChip(title: "完成", symbol: "checkmark", prominent: true) {
+                ActionChip(title: t("完成"), symbol: "checkmark", prominent: true) {
                     actions.edit(draft)
                     editing = false
                 }
-                ActionChip(title: "取消", symbol: "xmark", prominent: false) { editing = false }
-                Text("Esc 取消").font(.system(size: 10.5)).foregroundStyle(.tertiary)
+                ActionChip(title: t("取消"), symbol: "xmark", prominent: false) { editing = false }
+                Text(t("Esc 取消")).font(.system(size: 10.5)).foregroundStyle(.tertiary)
             }
         }
     }
@@ -401,32 +401,32 @@ private struct SegmentMenu: View {
 
     var body: some View {
         Menu {
-            Button("复制译文") {
+            Button(t("复制译文")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(segment.translation, forType: .string)
             }
             .disabled(segment.translation.isEmpty)
-            Button("朗读译文") {
+            Button(t("朗读译文")) {
                 guard !segment.translation.isEmpty else { return }
                 Speaker.shared.speak(Markdown.plainText(segment.translation), language: target)
             }
             .disabled(segment.translation.isEmpty)
             if !segment.block.isVerbatim {
-                Button("编辑译文…", action: edit)
+                Button(t("编辑译文…"), action: edit)
                     .disabled(segment.status == .running)
                 Divider()
-                Button("重新校对这一段", action: actions.review)
+                Button(t("重新校对这一段"), action: actions.review)
                     .disabled(segment.translation.isEmpty || segment.source.isEmpty)
-                Button(proof ? "用引擎重译这一段" : "重译这一段", action: actions.retranslate)
+                Button(proof ? t("用引擎重译这一段") : t("重译这一段"), action: actions.retranslate)
                     .disabled(segment.source.isEmpty)
                 if segment.issues.contains(where: { $0.state == .dismissed }) {
-                    Button("恢复已忽略的意见", action: actions.restoreDismissed)
+                    Button(t("恢复已忽略的意见"), action: actions.restoreDismissed)
                 }
                 if proof {
                     Divider()
-                    Section("对错了段落？") {
-                        Button("这里空出一段（译文整体下移）", action: actions.insertGap)
-                        Button("把下一段译文并进来", action: actions.pullNext)
+                    Section(t("对错了段落？")) {
+                        Button(t("这里空出一段（译文整体下移）"), action: actions.insertGap)
+                        Button(t("把下一段译文并进来"), action: actions.pullNext)
                     }
                 }
             }
@@ -512,7 +512,7 @@ private struct IssueCard: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         } else if let suggestion = issue.suggestion {
-            (Text("建议  ").foregroundStyle(.tertiary) + Text(shown(suggestion)))
+            (Text(t("建议") + "  ").foregroundStyle(.tertiary) + Text(shown(suggestion)))
                 .font(.system(size: 12 * scale))
                 .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
@@ -532,17 +532,17 @@ private struct IssueCard: View {
         HStack(spacing: 10) {
             if applicable {
                 Button(action: accept) {
-                    Text("采纳").font(.system(size: 11, weight: .semibold))
+                    Text(t("采纳")).font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
-                .help("用建议替换译文里的这几个字")
+                .help(t("用建议替换译文里的这几个字"))
             }
             Button(action: dismiss) {
-                Text("忽略").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text(t("忽略")).font(.system(size: 11)).foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help("这条不算问题")
+            .help(t("这条不算问题"))
         }
         .fixedSize()
     }
@@ -696,7 +696,7 @@ private struct VerbatimBlock: View {
         switch block {
         case .code(let language):
             VStack(alignment: .leading, spacing: 5) {
-                caption(language == "math" ? "公式 · 原样保留" : (language.isEmpty ? "代码 · 不翻译" : "\(language) · 不翻译"))
+                caption(language == "math" ? t("公式 · 原样保留") : (language.isEmpty ? t("代码 · 不翻译") : t("%@ · 不翻译", language)))
                 ScrollView(.horizontal, showsIndicators: false) {
                     Text(Self.body(ofFence: text))
                         .font(.system(size: 12 * scale, design: .monospaced))
@@ -713,7 +713,7 @@ private struct VerbatimBlock: View {
         case .image(let alt, let source):
             HStack(spacing: 8) {
                 Image(systemName: "photo").font(.system(size: 12))
-                Text(alt.isEmpty ? "图片" : alt).font(.system(size: 12 * scale, weight: .medium))
+                Text(alt.isEmpty ? t("图片") : alt).font(.system(size: 12 * scale, weight: .medium))
                 Text(source).font(.system(size: 11)).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
             }
             .foregroundStyle(.secondary)
@@ -725,7 +725,7 @@ private struct VerbatimBlock: View {
             Rectangle().fill(Color.primary.opacity(0.15)).frame(height: 1).padding(.vertical, 6)
         default:
             VStack(alignment: .leading, spacing: 5) {
-                caption("原样保留")
+                caption(t("原样保留"))
                 Text(text)
                     .font(.system(size: 11.5 * scale, design: .monospaced))
                     .foregroundStyle(.secondary)

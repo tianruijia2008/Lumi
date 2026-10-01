@@ -30,7 +30,7 @@ struct ResultBodyView: View {
         case .empty(let why):
             statusLine("text.magnifyingglass", why, .secondary)
         case .offline:
-            statusLine("wifi.slash", "离线不可用", .secondary)
+            statusLine("wifi.slash", t("离线不可用"), .secondary)
         case .needsSetup(let message):
             statusLine("gearshape", message, .secondary)
         case .failed(let message):

@@ -38,11 +38,11 @@ struct ResultCard: Identifiable, Sendable {
     /// Rail tooltip and fallback notice wording.
     var reason: String {
         switch status {
-        case .waiting:     "等待中"
-        case .streaming:   "正在输出"
-        case .done:        "已完成"
+        case .waiting:     tDetached("等待中")
+        case .streaming:   tDetached("正在输出")
+        case .done:        tDetached("已完成")
         case .empty(let why):  why
-        case .offline:     "离线不可用"
+        case .offline:     tDetached("离线不可用")
         case .failed(let message): message
         case .needsSetup(let message): message
         }
@@ -116,12 +116,12 @@ final class AppState {
         // is worth saying plainly instead of blaming whichever one is listed
         // first.
         if skipped.contains(where: { $0.status == .offline }) {
-            return ("wifi.slash", "离线，已回退到「\(landed)」")
+            return ("wifi.slash", t("离线，已回退到「%@」", landed))
         }
         guard let first = skipped.first else { return nil }
         // Corner brackets rather than a space: the ladder mixes Latin and CJK
         // service names, and a bare space reads as a typo next to one of them.
-        return ("arrow.turn.down.right", "\(first.title)\(first.reason)，改用「\(landed)」")
+        return ("arrow.turn.down.right", t("%@%@，改用「%@」", first.title, first.reason, landed))
     }
 
     // MARK: - Captures
@@ -193,7 +193,7 @@ final class AppState {
 
         guard !providers.isEmpty else {
             cards = []
-            lastError = "没有启用任何翻译服务，请在设置中开启至少一个。"
+            lastError = t("没有启用任何翻译服务，请在设置中开启至少一个。")
             return
         }
 
@@ -236,7 +236,7 @@ final class AppState {
         runTask = nil
         focusLockTask?.cancel()
         for index in cards.indices where cards[index].status == .waiting || cards[index].status == .streaming {
-            cards[index].status = cards[index].hasContent ? .done : .failed("已取消")
+            cards[index].status = cards[index].hasContent ? .done : .failed(t("已取消"))
         }
     }
 
@@ -320,7 +320,7 @@ final class AppState {
                 }
             }
             update(provider.kind) {
-                $0.status = $0.hasContent ? .done : .empty("无结果")
+                $0.status = $0.hasContent ? .done : .empty(t("无结果"))
             }
             finishSideEffects(for: provider.kind)
         } catch is CancellationError {
@@ -328,7 +328,7 @@ final class AppState {
         } catch TranslationFailure.emptyResult {
             // A dictionary with no entry for this word is the ordinary case the
             // ladder exists for, not a failure to report.
-            update(provider.kind) { $0.status = .empty("查不到") }
+            update(provider.kind) { $0.status = .empty(t("查不到")) }
         } catch {
             update(provider.kind) { $0.status = .failed(error.localizedDescription) }
         }

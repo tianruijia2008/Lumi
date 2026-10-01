@@ -90,7 +90,7 @@ final class PanelController: NSObject, NSWindowDelegate {
                 state.deliverCapture(text)
             } else {
                 Log.grab.error("no selection grabbed")
-                state.lastError = "没有取到选中的文本。试试先选中再按快捷键，或直接在上面输入。"
+                state.lastError = t("没有取到选中的文本。试试先选中再按快捷键，或直接在上面输入。")
             }
         }
     }
@@ -108,7 +108,7 @@ final class PanelController: NSObject, NSWindowDelegate {
                 place(panel)
                 panel.makeKeyAndOrderFront(nil)
                 if text.isEmpty {
-                    state.lastError = "这块区域里没有识别到文字。"
+                    state.lastError = t("这块区域里没有识别到文字。")
                 } else {
                     state.deliverCapture(text)
                 }
@@ -116,7 +116,7 @@ final class PanelController: NSObject, NSWindowDelegate {
                 let panel = ensurePanel()
                 place(panel)
                 panel.makeKeyAndOrderFront(nil)
-                state.lastError = "截图识别失败：\(error.localizedDescription)"
+                state.lastError = t("截图识别失败：%@", error.localizedDescription)
             }
         }
     }
@@ -158,9 +158,19 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// field, which come back as placeholder blocks. Asking screencapture for
     /// this one window number is the only way to see what the user sees.
     func windowShot(to path: String, settingsWindow: Bool = false) {
-        let target = settingsWindow
-            ? NSApp.windows.first { $0 !== panel && $0.isVisible && $0.frame.width > 300 }
-            : panel
+        // 从 App 内部调用 screencapture 是唯一能拍到玻璃和真实窗口的做法——在终端里
+        // 直接 screencapture -l 会被 TCC 挡住（屏幕录制授权不属于终端）。
+        //
+        // 目标窗口的选择：默认拍面板；`settingsWindow` 走"第一个不是面板、够宽的窗口"
+        // 这个老启发式；`LUMI_SHOT_TARGET=widest` 改选最大的那个非面板窗口——
+        // 拍工作台时那个启发式会拍错（设置窗口和工作台都满足条件），所以多一个选择。
+        let widest = ProcessInfo.processInfo.environment["LUMI_SHOT_TARGET"] == "widest"
+        let candidates = NSApp.windows.filter { $0 !== panel && $0.isVisible && $0.frame.width > 300 }
+        let target: NSWindow? = if settingsWindow || widest {
+            widest ? candidates.max { $0.frame.width < $1.frame.width } : candidates.first
+        } else {
+            panel
+        }
         if let w = target, ProcessInfo.processInfo.environment["LUMI_DRAG_MAP"] == "1" {
             var out = "window=\(w.frame.size)\n"
             for r in WindowDragZones.rects(in: w) { out += "zone=\(r)\n" }

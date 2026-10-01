@@ -61,7 +61,7 @@ Lumi/
 ├── CLAUDE.md                      # Claude Code 入口，@ 导入 AGENTS.md（约定只有一份）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
-│   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs 三阶段）
+│   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs / invariants 四阶段）
 │   ├── test-security-scan.py      # 守卫自测（CI 里跑，防止守卫本身失效）
 │   └── install-hooks.sh           # 新克隆后一键启用钩子
 ├── docs/
@@ -95,16 +95,22 @@ Lumi/
 
 | 模块 | 文件 | 行数 | 职责 | 关键类型 |
 |---|---:|---:|---|---|
-| `App` | 2 | 512 | 应用入口、菜单栏、面板窗口 | `LumiApp`、`AppDelegate`、`PanelController` |
-| `Core` | 9 | 1,012 | 查询扇出、设置、凭据、超时、网络 | `AppState`、`AppSettings`、`Keychain`、`Timeout`、`NetworkMonitor` |
-| `Input` | 4 | 408 | 拿到"用户选了什么" | `HotKeyCenter`、`TextGrabber`、`ScreenOCR`、`Permissions` |
-| `Translate` | 15 | 1,664 | 调服务并产出流式事件 | `TranslationProvider`、`ServiceKind`、`SSE`、`Prompts`、`ModelDirectory` |
-| `Etymology` | 7 | 1,819 | 词源页的数据 | `EtymologyStore`、`Wiktionary`、`WikiText`、`EtymologyParser` |
-| `Workbench` | 10 | 3,610 | 长文分段翻译与校对 | `WorkbenchEngine`、`WorkbenchDocument`、`Segmenter`、`DocumentStore` |
+| `App` | 2 | 546 | 应用入口、菜单栏、面板窗口 | `LumiApp`、`AppDelegate`、`PanelController` |
+| `Core` | 11 | 1,165 | 查询扇出、设置、凭据、超时、网络、**界面语言与文案表** | `AppState`、`AppSettings`、`Keychain`、`Timeout`、**`Localization`** |
+| `Input` | 4 | 410 | 拿到"用户选了什么" | `HotKeyCenter`、`TextGrabber`、`ScreenOCR`、`Permissions` |
+| `Translate` | 16 | 1,733 | 调服务并产出流式事件 | `TranslationProvider`、`ServiceKind`、`SSE`、`Prompts`、`ModelDirectory` |
+| `Etymology` | 8 | 1,979 | 词源页的数据（含维基语言名的中英对照表） | `EtymologyStore`、`Wiktionary`、`WikiText`、`EtymologyParser`、`LanguageNames` |
+| `Workbench` | 11 | 3,883 | 长文分段翻译与校对 | `WorkbenchEngine`、`WorkbenchDocument`、`Segmenter`、`DocumentStore` |
 | `PageBridge` | 2 | 517 | 让 Safari 扩展借用本机引擎 | `PageBridge`、`PageTranslator` |
 | `Speech` | 1 | 41 | 朗读 | `Speaker` |
-| `UI` | 19 | 6,689 | 全部视图与窗口修饰 | `GlassPanel`、`RootView`、`ServiceRail`、`SettingsView` |
-| **合计** | **69** | **16,272** | | |
+| `UI` | 21 | 6,909 | 全部视图与窗口修饰 | `GlassPanel`、`RootView`、`ServiceRail`、`SettingsView` |
+| **合计** | **76** | **17,183** | | |
+
+**界面文案表的位置**：`Core/Localization.swift`（API 与语言）+ 每个区域一个表文件
+（`Core/StringsCore.swift`、`UI/StringsPanel.swift`、`UI/StringsSettings.swift`、
+`Workbench/StringsWorkbench.swift`、`Etymology/StringsEtymology.swift`、
+`Translate/StringsServices.swift`）。这 7 个文件也是本表里 Core/UI/Workbench/Etymology/Translate
+计数增加的原因。设计见 TECHSHEET 的「界面语言」一节。
 
 ---
 
@@ -167,6 +173,14 @@ Lumi/
 **网页桥**：`PageBridge` 用 `NWListener` 只监听 `127.0.0.1:47121`（必须与扩展里的 `LUMI_PORT` 一致），受理前过三道校验——`Host` 必须是回环、带 web `Origin` 的一律拒绝、POST 必须带 `X-Lumi-Client`（页面无法在不触发预检的情况下设置它，而预检不回应）。扩展本体是 sandbox 的，读不到 Lumi 的 Keychain，所以只能把段落发过来让本机引擎翻。
 
 **词源**：`EtymologyStore`（单例）→ `Wiktionary` 抓取 → `WikiText` 做"够用就好"的 wikitext 解析（不展开模板）→ `EtymologyParser`/`EtymologyEntry` → 面板上的一行 teaser 或完整词源页；结果进内存缓存并记 recents。
+
+**界面语言**：中文 / 英文两套界面，在设置里切换、立即生效。文案走查表：`t("中文原文")`
+（MainActor，视图读它就会在切换时重绘）与 `tDetached(...)`（非 main actor 上下文，
+读 `Mutex` 快照）；key 就是中文原文，查不到英文回落中文。表按区域分文件、运行时合并。
+只影响界面文字——**提示词、维基解析、词典格式判断与用户内容都与此无关**。
+完整设计（为什么不放 `Localizable.strings`、为什么不放在 `AppSettings`、AppKit 菜单
+为什么要手动重建）见 TECHSHEET 的「界面语言」一节；守卫的 `invariants` 阶段会核对
+文案表的完整性（缺翻译 / 无用条目 / key 不含中文）。
 
 **自测入口**（不依赖人手点屏幕）**[TECHSHEET + `App/LumiApp.swift`]**：
 `LUMI_SHOW_ON_LAUNCH=1` 直接开面板，`LUMI_DEMO_QUERY=<词>` 灌查询，`LUMI_WINDOW_SHOT=<path>` 用 `screencapture -l` 拍真实窗口（唯一能看到玻璃材质的路径），`LUMI_SNAPSHOT=<path>` 走 `ImageRenderer` 离屏渲染（只适合看排版），`LUMI_SHOW_WORKBENCH=1` / `LUMI_WORKBENCH_ENGINE=online|offline` 开工作台。

@@ -53,15 +53,15 @@ struct EtymologyPage: View {
                 .contentShape(.capsule)
             }
             .buttonStyle(.plain)
-            .help("所有资料都来自 Wiktionary，点击打开原词条")
+            .help(t("所有资料都来自 Wiktionary，点击打开原词条"))
 
-            Text("讲解")
+            Text(t("讲解"))
                 .font(Chrome.chipFont)
                 .foregroundStyle(.tertiary)
                 .padding(.leading, 6)
 
             if lookup.narration == .running {
-                RunningChip(text: "\(lookup.narrator ?? "模型") 在整理讲解")
+                RunningChip(text: t("%@ 在整理讲解", lookup.narrator ?? t("模型")))
                     .transition(.opacity)
             } else {
                 EngineToggle(
@@ -69,8 +69,8 @@ struct EtymologyPage: View {
                     onlineName: "AI", onlineSymbol: "sparkles",
                     onlineUnconfigured: AppSettings.shared.workbenchOnlineProvider() == nil,
                     help: { $0 == .offline
-                        ? "只整理 Wiktionary 的资料，引文用系统翻译。不联网调用模型。"
-                        : "由语言模型把资料串成一段讲解，每句标出处；引文也交给它翻译。" }
+                        ? t("只整理 Wiktionary 的资料，引文用系统翻译。不联网调用模型。")
+                        : t("由语言模型把资料串成一段讲解，每句标出处；引文也交给它翻译。") }
                 )
                 .transition(.opacity)
             }
@@ -83,16 +83,16 @@ struct EtymologyPage: View {
                     .foregroundStyle(.secondary)
                     .fixedSize()
             }
-            IconButton(symbol: "doc.on.doc", help: "拷贝本页文字") { copy() }
+            IconButton(symbol: "doc.on.doc", help: t("拷贝本页文字")) { copy() }
                 .disabled(lookup.entry == nil)
             Menu {
-                Button("在 Wiktionary 中打开") {
+                Button(t("在 Wiktionary 中打开")) {
                     if let url = Wiktionary.url(for: lookup.word) { NSWorkspace.shared.open(url) }
                 }
-                Button("重写讲解") { lookup.narrate(force: true) }
+                Button(t("重写讲解")) { lookup.narrate(force: true) }
                     .disabled(store.engine == .offline || lookup.entry == nil)
                 Divider()
-                Button("重新获取") { lookup.retry() }
+                Button(t("重新获取")) { lookup.retry() }
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 11, weight: .semibold))
@@ -111,8 +111,8 @@ struct EtymologyPage: View {
     }
 
     private func counts(_ entry: EtymologyEntry) -> String {
-        var parts = ["\(entry.senses.count) 个义项"]
-        if !entry.quotes.isEmpty { parts.append("\(entry.quotes.count) 条引文") }
+        var parts = [t("%d 个义项", entry.senses.count)]
+        if !entry.quotes.isEmpty { parts.append(t("%d 条引文", entry.quotes.count)) }
         return parts.joined(separator: " · ")
     }
 
@@ -128,7 +128,7 @@ struct EtymologyPage: View {
             lines += ["", "\(quote.year.map(String.init) ?? "") \(quote.plainPassage)"]
             if let t = quote.translation { lines.append(t) }
         }
-        lines += ["", "资料来源：Wiktionary（CC BY-SA 4.0）"]
+        lines += ["", t("资料来源：Wiktionary（CC BY-SA 4.0）")]
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
     }
@@ -154,7 +154,7 @@ struct EtymologyPage: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(lookup.word).font(.system(size: 42, weight: .bold)).tracking(-0.8)
                 Notice(symbol: "exclamationmark.circle", text: why) {
-                    Button("重试") { lookup.retry() }.buttonStyle(.plain).foregroundStyle(Color.accentColor)
+                    Button(t("重试")) { lookup.retry() }.buttonStyle(.plain).foregroundStyle(Color.accentColor)
                 }
                 Spacer()
             }
@@ -176,7 +176,7 @@ struct EtymologyPage: View {
                         .padding(.top, 20)
 
                     if !entry.chain.isEmpty || !entry.folk.isEmpty {
-                        SectionHead(title: "来历", note: "从最早能追到的地方，到今天")
+                        SectionHead(title: t("来历"), note: t("从最早能追到的地方，到今天"))
                             .id(EtymologySection.chain)
                         ForEach(Array(entry.folk.enumerated()), id: \.offset) { _, claim in
                             FolkCard(claim: claim).padding(.bottom, 14)
@@ -240,7 +240,7 @@ private struct Hero: View {
             if let pos = entry.partOfSpeechLocal {
                 Text(pos).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
             }
-            IconButton(symbol: "speaker.wave.2", help: "朗读") {
+            IconButton(symbol: "speaker.wave.2", help: t("朗读")) {
                 Speaker.shared.speak(entry.word, language: .english)
             }
             .alignmentGuide(.lastTextBaseline) { $0[.bottom] - 3 }
@@ -248,10 +248,10 @@ private struct Hero: View {
             Spacer(minLength: 16)
 
             HStack(alignment: .lastTextBaseline, spacing: 22) {
-                if let century = entry.firstCentury { fact(century, "进入英语") }
-                if entry.chain.count > 1 { fact("\(entry.chain.count) 步", "从最早到今天") }
+                if let century = entry.firstCentury { fact(century, t("进入英语")) }
+                if entry.chain.count > 1 { fact(t("%d 步", entry.chain.count), t("从最早到今天")) }
                 if entry.senses.count > 1, entry.goneCount > 0 {
-                    fact("\(entry.goneCount) / \(entry.senses.count)", "个意思已不用或少用")
+                    fact("\(entry.goneCount) / \(entry.senses.count)", t("个意思已不用或少用"))
                 }
             }
         }
@@ -277,20 +277,20 @@ private struct NarrationBlock: View {
             switch lookup.narration {
             case .off:
                 Notice(symbol: "info.circle",
-                       text: "本机模式只整理资料，不写讲解。切到 AI，会把下面几部分串成一段话，每句标出处。") {
-                    Button("切到 AI") { store.engine = .online }
+                       text: t("本机模式只整理资料，不写讲解。切到 AI，会把下面几部分串成一段话，每句标出处。")) {
+                    Button(t("切到 AI")) { store.engine = .online }
                         .buttonStyle(.plain)
                         .foregroundStyle(Color.accentColor)
                 }
             case .unavailable(let why):
                 Notice(symbol: "exclamationmark.circle", text: why) {
-                    SettingsLink { Text("打开设置") }
+                    SettingsLink { Text(t("打开设置")) }
                         .buttonStyle(.plain)
                         .foregroundStyle(Color.accentColor)
                 }
             case .failed(let why):
-                Notice(symbol: "exclamationmark.triangle", text: "讲解没写成：\(why)") {
-                    Button("重试") { lookup.narrate(force: true) }
+                Notice(symbol: "exclamationmark.triangle", text: t("讲解没写成：%@", why)) {
+                    Button(t("重试")) { lookup.narrate(force: true) }
                         .buttonStyle(.plain)
                         .foregroundStyle(Color.accentColor)
                 }
@@ -321,7 +321,7 @@ private struct NarrationBlock: View {
             if lookup.narration == .done {
                 HStack(spacing: 5) {
                     Image(systemName: "sparkles").font(.system(size: 9.5))
-                    Text("\(lookup.narrator ?? "模型") 按本页资料整理 · 圈号是下面的引文 · 资料里没有的不写")
+                    Text(t("%@ 按本页资料整理 · 圈号是下面的引文 · 资料里没有的不写", lookup.narrator ?? t("模型")))
                 }
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
@@ -337,7 +337,7 @@ private struct FolkCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text("民间词源")
+            Text(t("民间词源"))
                 .font(.system(size: 10.5, weight: .semibold))
                 .foregroundStyle(.orange)
                 .padding(.horizontal, 9)
@@ -356,7 +356,7 @@ private struct FolkCard: View {
                 }
             }
             .fixedSize()
-            Text("流传很广，但 Wiktionary 明确标注这不是它的来历。放在这里，是因为你多半听过这个说法。")
+            Text(t("流传很广，但 Wiktionary 明确标注这不是它的来历。放在这里，是因为你多半听过这个说法。"))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -380,8 +380,8 @@ private struct ChainView: View {
             }
             if nodes.contains(where: \.isReconstructed) {
                 HStack(spacing: 18) {
-                    legend(dashed: true, "虚线：构拟形式，没有文字记录，是语言学家倒推出来的")
-                    legend(dashed: false, "实线：有文献")
+                    legend(dashed: true, t("虚线：构拟形式，没有文字记录，是语言学家倒推出来的"))
+                    legend(dashed: false, t("实线：有文献"))
                 }
             }
         }
@@ -456,12 +456,12 @@ private struct NodeCard: View {
                     .overlay { shape.strokeBorder(Chrome.rule, lineWidth: 1) }
             }
         }
-        .help(node.isReconstructed ? "构拟形式：没有文字记录，由语言学家根据后代语言倒推" : "")
+        .help(node.isReconstructed ? t("构拟形式：没有文字记录，由语言学家根据后代语言倒推") : "")
     }
 
     private var caption: String {
-        if node.isToday { return "英语 · 今天" }
-        return node.isReconstructed ? "\(node.language) · 构拟" : node.language
+        if node.isToday { return t("英语 · 今天") }
+        return node.isReconstructed ? t("%@ · 构拟", node.language) : node.language
     }
 }
 
@@ -498,11 +498,11 @@ private struct SensesBlock: View {
         if !entry.senses.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 if dated.count >= 2 {
-                    SectionHead(title: "词义变迁", note: "每条横线是一个意思活着的年代")
+                    SectionHead(title: t("词义变迁"), note: t("每条横线是一个意思活着的年代"))
                     SenseChart(senses: dated, quotes: entry.quotes, cite: cite)
                     let undated = entry.senses.filter { $0.start == nil }
                     if !undated.isEmpty {
-                        Text("另有 \(undated.count) 个义项没有年代标注：" + undated.map(\.shownLabel).joined(separator: "；"))
+                        Text(t("另有 %d 个义项没有年代标注：", undated.count) + undated.map(\.shownLabel).joined(separator: "；"))
                             .font(.system(size: 11.5))
                             .foregroundStyle(.tertiary)
                             .lineSpacing(3)
@@ -510,9 +510,9 @@ private struct SensesBlock: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 } else {
-                    SectionHead(title: "义项", note: nil)
+                    SectionHead(title: t("义项"), note: nil)
                     Notice(symbol: "info.circle",
-                           text: "这一条没有年代标注，画不出时间线，只列义项。不拿 AI 去猜年代。") { EmptyView() }
+                           text: t("这一条没有年代标注，画不出时间线，只列义项。不拿 AI 去猜年代。")) { EmptyView() }
                         .padding(.bottom, 8)
                     ForEach(entry.senses) { sense in
                         HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -547,10 +547,10 @@ private struct SenseChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 16) {
-                key(Color.accentColor, "还在用")
-                key(Color.accentColor.opacity(0.5), "渐少")
-                key(Color.primary.opacity(0.2), "已不用")
-                Text("圆圈是下面的引文 · 年代只精确到世纪")
+                key(Color.accentColor, t("还在用"))
+                key(Color.accentColor.opacity(0.5), t("渐少"))
+                key(Color.primary.opacity(0.2), t("已不用"))
+                Text(t("圆圈是下面的引文 · 年代只精确到世纪"))
                     .font(.system(size: 11)).foregroundStyle(.tertiary)
             }
             .padding(.leading, Self.labelWidth)
@@ -565,7 +565,7 @@ private struct SenseChart: View {
                             .lineLimit(2)
                             .help(sense.textLocal ?? sense.text)
                         if sense.status != .alive {
-                            Text(sense.status == .dead ? "已不用" : "少见")
+                            Text(sense.status == .dead ? t("已不用") : t("少见"))
                                 .font(.system(size: 9.5))
                                 .foregroundStyle(.tertiary)
                                 .padding(.horizontal, 5)
@@ -704,9 +704,9 @@ private struct Lower: View {
 
     private var quotes: some View {
         VStack(alignment: .leading, spacing: 0) {
-            SectionHead(title: "引文", note: entry.quotes.isEmpty ? nil : "按年代").id(EtymologySection.quotes)
+            SectionHead(title: t("引文"), note: entry.quotes.isEmpty ? nil : t("按年代")).id(EtymologySection.quotes)
             if entry.quotes.isEmpty {
-                Text("Wiktionary 这一条没有带年份的引文。资料少就显示少，不让 AI 补例句。")
+                Text(t("Wiktionary 这一条没有带年份的引文。资料少就显示少，不让 AI 补例句。"))
                     .font(.system(size: 12)).foregroundStyle(.tertiary)
             }
             ForEach(entry.quotes) { quote in
@@ -716,7 +716,7 @@ private struct Lower: View {
                     .id("q\(quote.id)")
             }
             if !entry.quotes.isEmpty, entry.quotes.count < 3 {
-                Text("这一条的引文就这么多。资料少就显示少，不让 AI 补例句。")
+                Text(t("这一条的引文就这么多。资料少就显示少，不让 AI 补例句。"))
                     .font(.system(size: 11.5)).foregroundStyle(.tertiary).padding(.top, 12)
             }
         }
@@ -725,12 +725,12 @@ private struct Lower: View {
     private var aside: some View {
         VStack(alignment: .leading, spacing: 0) {
             if lookup.kinLoading || !entry.kin.isEmpty {
-                SectionHead(title: "同根词", note: nil).id(EtymologySection.kin)
+                SectionHead(title: t("同根词"), note: nil).id(EtymologySection.kin)
                 if lookup.kinLoading && entry.kin.isEmpty { ShimmerLines() }
                 ForEach(entry.kin) { group in
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
-                            Text("同一词根")
+                            Text(t("同一词根"))
                             Text(group.root).font(.system(size: 13, design: .serif).italic())
                                 .foregroundStyle(.secondary)
                             if let gloss = group.glossLocal ?? group.gloss { Text(gloss) }
@@ -743,7 +743,7 @@ private struct Lower: View {
                     .padding(.bottom, 16)
                 }
             }
-            SectionHead(title: "资料", note: nil)
+            SectionHead(title: t("资料"), note: nil)
             VStack(alignment: .leading, spacing: 5) {
                 ForEach(entry.pages, id: \.self) { page in
                     Button {
@@ -761,7 +761,8 @@ private struct Lower: View {
                     .buttonStyle(.plain)
                 }
                 Rectangle().fill(Chrome.rule).frame(height: 1).padding(.vertical, 5)
-                Text("CC BY-SA 4.0 · \(entry.fetched.formatted(.iso8601.year().month().day())) 取得\n引文年代是词条自带的标注，不是推算的")
+                Text(t("CC BY-SA 4.0 · %@ 取得", entry.fetched.formatted(.iso8601.year().month().day()))
+                     + "\n" + t("引文年代是词条自带的标注，不是推算的"))
                     .font(.system(size: 10.5))
                     .foregroundStyle(.tertiary)
                     .lineSpacing(3)
@@ -787,7 +788,7 @@ private struct QuoteRow: View {
                     .font(.system(size: 13, weight: .semibold))
                     .monospacedDigit()
                 if quote.approximate {
-                    Text("前后").font(.system(size: 10)).foregroundStyle(.tertiary)
+                    Text(t("前后")).font(.system(size: 10)).foregroundStyle(.tertiary)
                 }
                 Text("\(quote.id)")
                     .font(.system(size: 8.5, weight: .semibold))
@@ -865,7 +866,7 @@ private struct KinRow: View {
         .buttonStyle(.plain)
         .padding(.horizontal, -8)
         .onHover { hovering = $0 }
-        .help("查 \(word.word) 的词源")
+        .help(t("查 %@ 的词源", word.word))
     }
 }
 

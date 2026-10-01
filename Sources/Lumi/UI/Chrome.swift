@@ -76,7 +76,7 @@ struct IconButton: View {
 /// page, which make the same choice about different work.
 struct EngineToggle: View {
     @Binding var selection: WorkbenchEngineID
-    var onlineName = "联网"
+    var onlineName = t("联网")
     var onlineSymbol = "cloud"
     /// The same orange dot the service rail uses for "on but not set up".
     var onlineUnconfigured = false
@@ -106,7 +106,7 @@ struct EngineToggle: View {
             HStack(spacing: 4) {
                 Image(systemName: id == .offline ? "desktopcomputer" : onlineSymbol)
                     .font(.system(size: 9.5, weight: .semibold))
-                Text(id == .offline ? "本机" : onlineName)
+                Text(id == .offline ? t("本机") : onlineName)
                     .font(Chrome.chipFont)
                 if id == .online, onlineUnconfigured {
                     Circle().fill(.orange).frame(width: 4, height: 4)

@@ -2,7 +2,7 @@ import Foundation
 
 struct TimeoutError: LocalizedError {
     let seconds: Double
-    var errorDescription: String? { String(format: "超时（%.0f 秒无响应）", seconds) }
+    var errorDescription: String? { tDetached("超时（%.0f 秒无响应）", seconds) }
 }
 
 /// Races `operation` against a deadline.

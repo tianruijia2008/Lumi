@@ -68,7 +68,7 @@ struct RootView: View {
                 .frame(minWidth: 24, maxWidth: .infinity)
 
             iconButton(settings.pinPanel ? "pin.fill" : "pin",
-                       help: settings.pinPanel ? "已固定，点击别处不会收起" : "固定窗口",
+                       help: settings.pinPanel ? t("已固定，点击别处不会收起") : t("固定窗口"),
                        active: settings.pinPanel) {
                 withAnimation(Motion.tap) { settings.pinPanel.toggle() }
             }
@@ -83,7 +83,7 @@ struct RootView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("设置")
+            .help(t("设置"))
         }
         .padding(.horizontal, 12)
         // The height belongs to the row rather than to padding above it:
@@ -108,7 +108,7 @@ struct RootView: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .help("对调方向")
+            .help(t("对调方向"))
 
             languageMenu(title: targetTitle, selection: targetBinding, includeAuto: false)
         }
@@ -143,7 +143,7 @@ struct RootView: View {
     /// detection rather than naming a language it has not seen yet.
     private var sourceTitle: String {
         guard state.sourceOverride == .auto else { return state.sourceOverride.displayName }
-        return state.cards.isEmpty ? "自动" : state.resolvedSource.displayName
+        return state.cards.isEmpty ? t("自动") : state.resolvedSource.displayName
     }
 
     /// Has to show the target that was *used*, not the preference: when the
@@ -190,7 +190,7 @@ struct RootView: View {
                 .foregroundStyle(.secondary)
                 .frame(height: lineHeight)
 
-            TextField("输入或粘贴要翻译的文本", text: $draft, axis: .vertical)
+            TextField(t("输入或粘贴要翻译的文本"), text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14.5 * settings.fontScale))
                 .lineLimit(1...(inputExpanded ? 14 : settings.inputCollapsedLines))
@@ -219,16 +219,16 @@ struct RootView: View {
     private var controls: some View {
         VStack(spacing: 2) {
             if state.isRunning {
-                iconButton("stop.fill", help: "停止") { state.cancel() }
+                iconButton("stop.fill", help: t("停止")) { state.cancel() }
                     .transition(.scale.combined(with: .opacity))
             } else if !draft.isEmpty {
-                iconButton("xmark", help: "清空") { state.clear(); draft = "" }
+                iconButton("xmark", help: t("清空")) { state.clear(); draft = "" }
                     .transition(.scale.combined(with: .opacity))
             }
 
             if inputOverflows || inputExpanded {
                 iconButton(inputExpanded ? "chevron.up" : "chevron.down",
-                           help: inputExpanded ? "收起" : "展开全文") {
+                           help: inputExpanded ? t("收起") : t("展开全文")) {
                     withAnimation(Motion.settle) { inputExpanded.toggle() }
                 }
                 .transition(.scale.combined(with: .opacity))
@@ -343,11 +343,11 @@ struct RootView: View {
 
             HStack(spacing: 2) {
                 CopyButton(text: state.focusedCard?.text ?? "")
-                iconButton("speaker.wave.2", help: "朗读") {
+                iconButton("speaker.wave.2", help: t("朗读")) {
                     guard let text = state.focusedCard?.text, !text.isEmpty else { return }
                     Speaker.shared.speak(text, language: state.resolvedTarget)
                 }
-                iconButton("arrow.clockwise", help: "重新查询") {
+                iconButton("arrow.clockwise", help: t("重新查询")) {
                     state.submit(state.queryText)
                 }
             }
@@ -392,7 +392,7 @@ private struct CopyButton: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(.secondary)
-        .help("复制")
+        .help(t("复制"))
     }
 }
 
@@ -407,7 +407,7 @@ private struct EtymologyTeaserRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
-                Text("来历")
+                Text(t("来历"))
                     .font(.system(size: 10.5))
                     .tracking(0.6)
                     .foregroundStyle(.tertiary)
@@ -416,7 +416,7 @@ private struct EtymologyTeaserRow: View {
                     WorkbenchController.shared.showEtymology(teaser.word)
                 } label: {
                     HStack(spacing: 3) {
-                        Text("深究")
+                        Text(t("深究"))
                         Image(systemName: "chevron.right").font(.system(size: 8.5, weight: .bold))
                     }
                     .font(.system(size: 11.5, weight: .semibold))
@@ -426,7 +426,7 @@ private struct EtymologyTeaserRow: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { hovering = $0 }
-                .help("在工作台里看 \(teaser.word) 的完整词源")
+                .help(t("在工作台里看 %@ 的完整词源", teaser.word))
             }
             HStack(alignment: .firstTextBaseline, spacing: 7) {
                 ForEach(Array(teaser.steps.enumerated()), id: \.offset) { index, step in

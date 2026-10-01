@@ -5,10 +5,10 @@ struct GeminiProvider: TranslationProvider {
     let model: String
 
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
-        guard !model.isEmpty else { return .needsSetup("请填写模型名") }
+        guard !model.isEmpty else { return .needsSetup(tDetached("请填写模型名")) }
         return Keychain.get(kind.keychainAccount)?.isEmpty == false
             ? .ready
-            : .needsSetup("请在设置中填写 Gemini API Key")
+            : .needsSetup(tDetached("请在设置中填写 Gemini API Key"))
     }
 
     func translate(_ request: TranslationRequest) -> AsyncThrowingStream<TranslationEvent, any Error> {
@@ -20,7 +20,7 @@ struct GeminiProvider: TranslationProvider {
         let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/"
             + "\(model):streamGenerateContent?alt=sse"
         guard let url = URL(string: endpoint) else {
-            return AsyncThrowingStream { $0.finish(throwing: TranslationFailure.badResponse(-1, "模型名无效")) }
+            return AsyncThrowingStream { $0.finish(throwing: TranslationFailure.badResponse(-1, tDetached("模型名无效"))) }
         }
 
         var urlRequest = URLRequest(url: url)

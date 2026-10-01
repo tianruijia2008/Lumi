@@ -54,9 +54,9 @@ enum ServiceKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashabl
 
     var displayName: String {
         switch self {
-        case .appleTranslate:  "系统翻译"
-        case .appleDictionary: "系统词典"
-        case .google:          "Google 网页"
+        case .appleTranslate:  tDetached("系统翻译")
+        case .appleDictionary: tDetached("系统词典")
+        case .google:          tDetached("Google 网页")
         case .openAI:          "OpenAI"
         case .deepseek:        "DeepSeek"
         case .groq:            "Groq"
@@ -64,11 +64,11 @@ enum ServiceKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashabl
         case .siliconflow:     "SiliconFlow"
         case .xai:             "xAI"
         case .openrouter:      "OpenRouter"
-        case .customOpenAI:    "自定义（OpenAI 兼容）"
+        case .customOpenAI:    tDetached("自定义（OpenAI 兼容）")
         case .claude:          "Claude"
         case .gemini:          "Gemini"
         case .deepL:           "DeepL"
-        case .ollama:          "本地模型"
+        case .ollama:          tDetached("本地模型")
         }
     }
 
@@ -202,10 +202,10 @@ enum ServiceKind: String, CaseIterable, Codable, Sendable, Identifiable, Hashabl
 
     var section: String {
         switch family {
-        case .appleTranslate, .appleDictionary: "系统内置（离线、免密钥）"
-        case .googleWeb, .deepL:                "翻译服务"
-        case .ollama:                           "本地模型"
-        default:                                "大模型"
+        case .appleTranslate, .appleDictionary: tDetached("系统内置（离线、免密钥）")
+        case .googleWeb, .deepL:                tDetached("翻译服务")
+        case .ollama:                           tDetached("本地模型")
+        default:                                tDetached("大模型")
         }
     }
 }

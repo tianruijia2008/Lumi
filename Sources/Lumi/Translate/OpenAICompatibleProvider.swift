@@ -10,10 +10,10 @@ struct OpenAICompatibleProvider: TranslationProvider {
     let baseURL: String
 
     func availability(for request: TranslationRequest) async -> ProviderAvailability {
-        guard !baseURL.isEmpty else { return .needsSetup("请填写 API 地址") }
-        guard !model.isEmpty else { return .needsSetup("请填写模型名") }
+        guard !baseURL.isEmpty else { return .needsSetup(tDetached("请填写 API 地址")) }
+        guard !model.isEmpty else { return .needsSetup(tDetached("请填写模型名")) }
         guard Keychain.get(kind.keychainAccount)?.isEmpty == false else {
-            return .needsSetup("请在设置中填写 \(kind.displayName) API Key")
+            return .needsSetup(tDetached("请在设置中填写 %@ API Key", kind.displayName))
         }
         return .ready
     }
@@ -24,7 +24,7 @@ struct OpenAICompatibleProvider: TranslationProvider {
         }
         guard let url = URL(string: baseURL.trimmingCharacters(in: .whitespaces))?
             .appending(path: "chat/completions") else {
-            return AsyncThrowingStream { $0.finish(throwing: TranslationFailure.badResponse(-1, "API 地址无效")) }
+            return AsyncThrowingStream { $0.finish(throwing: TranslationFailure.badResponse(-1, tDetached("API 地址无效"))) }
         }
 
         var urlRequest = URLRequest(url: url)
