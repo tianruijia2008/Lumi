@@ -689,7 +689,7 @@ def _check_no_dependencies(root: Path, findings: list[Finding]) -> None:
 
 
 SHELL_SCRIPTS = (".githooks/pre-commit", ".githooks/pre-push", "build.sh", "run.sh",
-                 "scripts/install-hooks.sh")
+                 "scripts/install-hooks.sh", "scripts/sync-vault.sh")
 # `$name` 紧跟着非 ASCII 字符（例如 "到「$name」"）时，某些 /bin/sh 会把多字节字符
 # 当成变量名的一部分，于是变量展开成空、而且吃掉半个 UTF-8 字符——报错信息里
 # 出现 mojibake，最关键的信息（远端名、URL）反而消失。写成 ${name} 就没这问题。

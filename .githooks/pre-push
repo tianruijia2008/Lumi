@@ -8,13 +8,16 @@
 # 干净的一条；别人 fetch 过之后也收不回来。`git push --all`、`git push --mirror`、
 # 图形客户端的“推送所有分支”都会造成这种事故，而它们看起来都很无害。
 #
-# 规则（只约束发布仓库，别的远端一概不管）：
-#   URL 含 Lumi-history  → 存档仓库（同样公开），推什么都放行
+# 规则：
+#   URL 含 Lumi-history  → 存档仓库（同样公开）：一律拒绝直接推送。它的历史去掉了
+#                          AGENTS.md / CLAUDE.md、哈希和本地不同，只能由
+#                          scripts/sync-vault.sh 重新生成后推送（脚本从临时克隆推，
+#                          不经过这个钩子）
 #   URL 含 <发布仓库标识> → 只允许 refs/heads/main 与 refs/tags/*，且拒绝删除 main
 #   其它（fork、自建远端）→ 放行：贡献者在自己的 fork 上推特性分支必须照常可用
 #
 # 确实需要绕过：git push --no-verify
-# 存档同步：    git push vault --all && git push vault --tags
+# 存档同步：    scripts/sync-vault.sh
 
 remote_name="$1"
 remote_url="$2"
@@ -23,7 +26,11 @@ vault_marker="Lumi-history"           # 存档仓库（见 STRUCTURE.md 第 8 �
 publish_marker="tianruijia2008/Lumi"  # 发布仓库；vault 的 URL 也含这段，所以先判 vault
 
 case "$remote_url" in
-    *"$vault_marker"*)   exit 0 ;;    # 存档仓库：全放行
+    *"$vault_marker"*)                # 存档仓库：只接受 sync-vault.sh 的推送
+        echo "✗ 存档仓库「${remote_name}」不接受直接推送：它的历史是过滤后重新生成的" >&2
+        echo "  （去掉了 AGENTS.md / CLAUDE.md），直接推会把这两个文件带回公开仓库。" >&2
+        echo "  请用：scripts/sync-vault.sh" >&2
+        exit 1 ;;
     *"$publish_marker"*) ;;           # 发布仓库：走下面的规则
     *)                   exit 0 ;;    # fork / 其它远端：不干涉
 esac
@@ -44,7 +51,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         *)
             echo "✗ 拒绝推送 ${remote_ref} 到发布仓库「${remote_name}」（${remote_url}）" >&2
             echo "  这个仓库只接受 main 与 tag——开发历史不该出现在这里。" >&2
-            echo "  存档请用：git push vault --all && git push vault --tags" >&2
+            echo "  存档请用：scripts/sync-vault.sh" >&2
             echo "  在自己的 fork 上推分支不受影响。确实要绕过：git push --no-verify" >&2
             status=1
             ;;
