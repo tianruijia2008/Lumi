@@ -79,6 +79,7 @@ jobs:
           bash -n build.sh
           bash -n run.sh
           sh -n .githooks/pre-commit
+          sh -n .githooks/pre-push
       - name: 检查 plist / entitlements 是合法 XML
         run: |
           python3 - <<'PY'

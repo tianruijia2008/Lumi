@@ -7,9 +7,11 @@ set -e
 
 root="$(git rev-parse --show-toplevel)"
 git -C "$root" config core.hooksPath .githooks
-chmod +x "$root/.githooks/pre-commit" 2>/dev/null || true
+chmod +x "$root/.githooks/pre-commit" "$root/.githooks/pre-push" 2>/dev/null || true
 
 echo "▸ 已启用 pre-commit 钩子（core.hooksPath=.githooks）"
 echo "  它会在每次 git commit 前扫描 staged 内容里的密钥 / 个人信息。"
+echo "  另外 pre-push 只允许把 main 与 tag 推到发布仓库（origin），"
+echo "  开发历史请推存档仓库：git push vault --all && git push vault --tags"
 echo "  临时绕过：git commit --no-verify    关闭：git config --unset core.hooksPath"
 echo "  完整检查（含文档漂移）：python3 scripts/security-scan.py"

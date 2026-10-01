@@ -75,6 +75,8 @@ INVARIANT_FIXTURES: list[tuple[str, str, str, str]] = [
      "invariant/codesign-deep"),
     ("Lumi.entitlements", "<key>com.apple.security.app-sandbox</key>            <false/>",
      "<key>com.apple.security.app-sandbox</key>            <true/>", "invariant/sandbox"),
+    (".githooks/pre-push", 'vault_marker="Lumi-history"',
+     'vault_marker="Lumi-history"; echo "坏：$vault_marker中"', "invariant/shell-interpolation"),
     ("Package.swift", "let package = Package(",
      "let package = Package(dependencies: [.package(url: \"https://x/y\", from: \"1.0.0\")],", 
      "invariant/dependency-added"),
@@ -90,7 +92,8 @@ def invariant_rules(scanner, relative: str, old: str, new: str) -> set[str]:
     """把仓库里 invariants 需要的那几个文件拷出来，改一处，跑一遍。"""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        wanted = ["Package.swift", "build.sh", "Lumi.entitlements",
+        wanted = [".githooks/pre-push", ".githooks/pre-commit",
+                  "Package.swift", "build.sh", "Lumi.entitlements",
                   "Extensions/Safari/Extension.entitlements",
                   "Sources/Lumi/PageBridge/PageBridge.swift"]
         wanted += [str(p.relative_to(REPO))

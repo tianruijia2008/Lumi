@@ -241,6 +241,33 @@ git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 **守卫自己也要被验证**：`scripts/test-security-scan.py` 在临时仓库里塞 17 种真形状的假密钥，断言全部命中；再塞 14 类正常内容（文档例句、`com.tianruijia.` bundle id、sha256 常量、noreply 邮箱…），断言零误报；
 最后把 7 条设计契约各改坏一次，断言都会被抓住——**一共 38 项**。CI 里跑它，所以“永远绿”的假扫描器活不过下一次提交。
 
+### 两个远端：发布线 vs 存档
+
+仓库里有两条**没有共同祖先**的历史，所以推送的地方必须分开：
+
+| 远端 | 地址 | 收什么 | 用途 |
+|---|---|---|---|
+| `origin` | `github.com/…/Lumi` | 只收 `main` 与 tag | 发布线（已压平：`main` 是一个初始提交 + 后续修改） |
+| `vault` | `github.com/…/Lumi-history`（私有） | 全都收 | 存档：`main` + `backup/pre-public`（未压平的开发历史）+ tag |
+
+```bash
+git push origin main                 # 发布
+git push origin v0.1.0               # 发布标签
+git push vault --all                 # 存档：所有分支（--all 不会带 tag）
+git push vault --tags                # 存档：所有标签
+```
+
+`git push --all` **不会**推标签，`--all --tags` 不能同时用（git 会直接报错），所以存档是两条命令。
+`--mirror` 也别用来做备份：它会按本地状态**删除**远端多出来的引用，等于把存档变成镜像——
+本地误删一个分支，存档里的历史也跟着没了。备份应该是只增不减。
+
+`.githooks/pre-push` 把这件事从"记得别推错"变成机制：URL 里不含 `Lumi-history` 的远端，
+只允许 `main` 与 `refs/tags/*`，删除 `main` 也拒绝。开发历史被推到公开仓库是无法真正
+撤回的（只能删仓库重开），所以这里宁可拦错。
+
+发布标记：tag 打在 `main` 的当前提交上，版本号同时在 `manifest.json`、`Resources/Info.plist`、
+`Extensions/Safari/Info.plist` 三处，必须一致。
+
 **几个刻意没做的事**（免得以后反复讨论）：
 
 - **不钉 `ubuntu-latest` 到 `ubuntu-24.04`**：守卫只用 Python 标准库 + bash，跟发行版版本无关；钉死换来一个需要人工维护的版本号，还得再写一条升级提醒。那条"将迁到 Ubuntu 26"的公告是信息，不是问题。

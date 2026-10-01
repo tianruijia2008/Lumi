@@ -680,12 +680,41 @@ def _check_no_dependencies(root: Path, findings: list[Finding]) -> None:
                                 "『零第三方依赖』声明（那是个已验证事实，不能悄悄失效）"))
 
 
+SHELL_SCRIPTS = (".githooks/pre-commit", ".githooks/pre-push", "build.sh", "run.sh",
+                 "scripts/install-hooks.sh")
+# `$name` 紧跟着非 ASCII 字符（例如 "到「$name」"）时，某些 /bin/sh 会把多字节字符
+# 当成变量名的一部分，于是变量展开成空、而且吃掉半个 UTF-8 字符——报错信息里
+# 出现 mojibake，最关键的信息（远端名、URL）反而消失。写成 ${name} 就没这问题。
+DOLLAR_NAME = re.compile(r"\$[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _check_shell_interpolation(root: Path, findings: list[Finding]) -> None:
+    for relative in SHELL_SCRIPTS:
+        text = read_repo_file(root, relative)
+        if text is None:
+            continue
+        for lineno, line in enumerate(text.splitlines(), start=1):
+            if line.lstrip().startswith("#"):
+                continue
+            for match in DOLLAR_NAME.finditer(line):
+                following = line[match.end():match.end() + 1]
+                if not following or ord(following) < 0x80:
+                    continue
+                # 单引号里的 $ 不会展开，跳过
+                if line[:match.start()].count("'") % 2 == 1:
+                    continue
+                findings.append(Finding(relative, lineno, "invariant/shell-interpolation",
+                                        f"{match.group(0)} 紧邻非 ASCII 字符，请写成 "
+                                        f"${{{match.group(0)[1:]}}}（否则会展开成空并破坏 UTF-8）"))
+
+
 def scan_invariants(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     _check_port_agreement(root, findings)
     _check_extension_egress(root, findings)
     _check_entitlements_and_signing(root, findings)
     _check_no_dependencies(root, findings)
+    _check_shell_interpolation(root, findings)
     return findings
 
 
