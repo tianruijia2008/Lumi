@@ -54,10 +54,12 @@ Lumi/
 ├── .githooks/pre-push             # 只允许把 main / tag 推到发布仓库，拒绝直接推存档
 ├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档 / 契约四道闸门
 ├── README.md                      # 给使用者：功能、截图、安装、隐私
-├── README.en.md                   # README 的英文版（只在存档里）
+├── README.en.md                   # README 的英文版（与 README.md 顶部互相链接）
 ├── TECHSHEET.md                   # 技术说明：设计取向、实现细节、自测入口
 ├── CONTRIBUTING.md                # 提 issue / PR 的约定与贡献授权
 ├── LICENSE                        # GPL-3.0
+├── AGENTS.md                      # 给 AI 代理的约定（红线 / 检查 / 改图流程）
+├── CLAUDE.md                      # Claude Code 入口，@ 导入 AGENTS.md（约定只有一份）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
 │   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs / invariants 四阶段）
@@ -264,7 +266,7 @@ git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 | 远端 | 地址 | 收什么 | 用途 |
 |---|---|---|---|
 | `origin` | `github.com/…/Lumi` | 只收 `main` 与 tag | 发布线（已压平：`main` 是一个初始提交 + 后续修改） |
-| `vault` | `github.com/…/Lumi-history`（公开） | 只收 `sync-vault.sh` 推的 | 存档：`main` + `backup/pre-public`（未压平的开发历史）+ tag，整段历史去掉了 `AGENTS.md` / `CLAUDE.md`，另有英文 README |
+| `vault` | `github.com/…/Lumi-history`（公开） | 只收 `sync-vault.sh` 推的 | 存档：`main` + `backup/pre-public`（未压平的开发历史）+ tag，整段历史去掉了 `AGENTS.md` / `CLAUDE.md` |
 
 ```bash
 git push origin main                 # 发布
@@ -278,12 +280,12 @@ scripts/sync-vault.sh                # 存档（--dry-run 只生成不推）
 1. 把本地的 `main`、`backup/pre-public` 与 tag 克隆到临时目录——**其它本地分支一律不带**，
    临时分支不会因为一次同步被公开；
 2. 过滤。过滤是确定的（同样的输入得到同样的哈希），所以推过的提交不会变，推送都是快进，不用 `--force`；
-3. 存档的两条分支顶上各有一个存档专用提交（`main` 上是 `README.en.md`，两边都去掉了指向被删文件的链接），
+3. 存档的两条分支顶上各有一个存档专用提交（去掉指向被删文件的链接），
    所以是把过滤后的分支**合并**进存档里的同名分支，而不是覆盖。合并冲突时脚本停下并保留临时目录；
 4. 在合并结果上跑完整守卫与自测，都通过才推。
 
 脚本从临时克隆推送，不经过本仓库的钩子；直接 `git push vault` 会被 `pre-push` 拒绝。
-英文 README 只存在于存档里，中文 README 有大改动时要在存档里手动同步一次。
+改了中文 `README.md`，记得同步 `README.en.md`（两份互相链接，守卫不会替你发现内容不一致）。
 
 `.githooks/pre-push` 把这件事从"记得别推错"变成机制。对发布仓库（URL 含
 `tianruijia2008/Lumi`）：只允许 `main` 与 `refs/tags/*`，删除 `main` 也拒绝；对存档仓库
