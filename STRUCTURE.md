@@ -51,12 +51,14 @@ Lumi/
 ├── .gitignore                     # 构建产物、本机私有配置不入库
 ├── .lumi-identity                 # 签名身份（本地、不入库；build.sh 读它）
 ├── .githooks/pre-commit           # 提交前守卫（core.hooksPath 指向这里）
+├── .githooks/pre-push             # 只允许把 main / tag 推到发布仓库
 ├── .github/workflows/security.yml # CI：密钥 / 卫生 / 文档 / 契约四道闸门
 ├── README.md                      # 给使用者：功能、截图、安装、隐私
 ├── TECHSHEET.md                   # 技术说明：设计取向、实现细节、自测入口
 ├── CONTRIBUTING.md                # 提 issue / PR 的约定与贡献授权
 ├── LICENSE                        # GPL-3.0
 ├── AGENTS.md                      # 给 AI 代理的约定（红线 / 检查 / 改图流程）
+├── CLAUDE.md                      # Claude Code 入口，@ 导入 AGENTS.md（约定只有一份）
 ├── STRUCTURE.md                   # 本文
 ├── scripts/
 │   ├── security-scan.py           # 守卫本体（secrets / hygiene / docs 三阶段）
@@ -261,9 +263,11 @@ git push vault --tags                # 存档：所有标签
 `--mirror` 也别用来做备份：它会按本地状态**删除**远端多出来的引用，等于把存档变成镜像——
 本地误删一个分支，存档里的历史也跟着没了。备份应该是只增不减。
 
-`.githooks/pre-push` 把这件事从"记得别推错"变成机制：URL 里不含 `Lumi-history` 的远端，
-只允许 `main` 与 `refs/tags/*`，删除 `main` 也拒绝。开发历史被推到公开仓库是无法真正
-撤回的（只能删仓库重开），所以这里宁可拦错。
+`.githooks/pre-push` 把这件事从"记得别推错"变成机制，但**只约束发布仓库**（URL 含
+`tianruijia2008/Lumi`）：只允许 `main` 与 `refs/tags/*`，删除 `main` 也拒绝。
+存档仓库（URL 含 `Lumi-history`）与其它远端（fork、自建）一律放行——贡献者在自己的
+fork 上推特性分支必须照常可用。开发历史被推到公开仓库是无法真正撤回的（只能删仓库
+重开），所以这里对发布仓库宁可拦错。
 
 发布标记：tag 打在 `main` 的当前提交上，版本号同时在 `manifest.json`、`Resources/Info.plist`、
 `Extensions/Safari/Info.plist` 三处，必须一致。

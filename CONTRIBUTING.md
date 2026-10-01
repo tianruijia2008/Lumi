@@ -19,6 +19,11 @@
    python3 scripts/security-scan.py
    ```
 
+   钩子装两个：`pre-commit` 只检查你这次要提交的内容里的密钥 / 个人信息；
+   `pre-push` 只约束**本项目发布仓库**（拒绝把 `main`/tag 以外的引用推上去）。
+   在你自己 fork 上推特性分支完全不受影响。
+   确实需要绕过：`git commit --no-verify` / `git push --no-verify`（CI 仍会检查）。
+
 4. 改了 `Sources/Lumi/` 的文件数量或行数，要同步 `STRUCTURE.md` 第 3 节，否则守卫会报文档漂移。
 5. 不要引入第三方依赖，`Package.swift` 保持没有 `dependencies`。
 

@@ -465,7 +465,8 @@ Extensions/Safari/
   Harness/                          不经 Safari 调试扩展的测试页
 
 scripts/     仓库守卫（密钥 / 卫生 / 文档 / 设计契约四阶段）与它的自测
-.githooks/   提交前钩子（core.hooksPath 指到这里，./scripts/install-hooks.sh 启用）
+.githooks/   两个钩子：提交前查密钥 / 个人信息；推送前挡住往发布仓库推开发历史
+             （core.hooksPath 指到这里，./scripts/install-hooks.sh 启用）
 .github/     CI：push 与 PR 时跑同一套守卫
 docs/        两张图 + 浏览器证据 + 图规格 + README 用的截图
 ```

@@ -1,27 +1,31 @@
 #!/bin/sh
-# 只允许把「发布线」推到发布仓库，防止开发历史被误推出去。
+# 只允许把「发布线」推到**发布仓库**，防止开发历史被误推出去。
 #
 # 为什么需要它：仓库里有两条没有共同祖先的历史——
 #   main               压平后的发布线（对外）
 #   backup/pre-public  未压平的开发历史（存档用）
-# 一旦 backup/* 被推到公开仓库，开发历史就跟着出去了，而且无法真正撤回
+# 一旦 backup/* 被推到发布仓库，开发历史就跟着出去了，而且无法真正撤回
 # （只能删掉仓库重开）。`git push --all`、`git push --mirror`、图形客户端的
 # “推送所有分支”都会造成这种事故，而它们看起来都很无害。
 #
-# 规则：
-#   存档仓库（URL 里含 Lumi-history）→ 推什么都放行
-#   其它任何远端                      → 只允许 refs/heads/main 与 refs/tags/*
-#   删除 main 同样拒绝
+# 规则（只约束发布仓库，别的远端一概不管）：
+#   URL 含 Lumi-history  → 存档仓库，推什么都放行
+#   URL 含 <发布仓库标识> → 只允许 refs/heads/main 与 refs/tags/*，且拒绝删除 main
+#   其它（fork、自建远端）→ 放行：贡献者在自己的 fork 上推特性分支必须照常可用
 #
 # 确实需要绕过：git push --no-verify
 # 存档同步：    git push vault --all && git push vault --tags
 
 remote_name="$1"
 remote_url="$2"
-vault_marker="Lumi-history"          # 存档仓库的标识，见 STRUCTURE.md 第 8 节
+
+vault_marker="Lumi-history"           # 存档仓库（见 STRUCTURE.md 第 8 节）
+publish_marker="tianruijia2008/Lumi"  # 发布仓库；vault 的 URL 也含这段，所以先判 vault
 
 case "$remote_url" in
-    *"$vault_marker"*) exit 0 ;;     # 存档仓库：全部放行
+    *"$vault_marker"*)   exit 0 ;;    # 存档仓库：全放行
+    *"$publish_marker"*) ;;           # 发布仓库：走下面的规则
+    *)                   exit 0 ;;    # fork / 其它远端：不干涉
 esac
 
 status=0
@@ -31,17 +35,17 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         refs/heads/main)
             case "$local_sha" in
                 0000000000000000000000000000000000000000)
-                    echo "✗ 拒绝删除「${remote_name}」上的 main" >&2
+                    echo "✗ 拒绝删除发布仓库「${remote_name}」上的 main" >&2
                     status=1
                     ;;
             esac
             ;;
         refs/tags/*) ;;               # 发布标签放行
         *)
-            echo "✗ 拒绝推送 ${remote_ref} 到「${remote_name}」（${remote_url}）" >&2
-            echo "  这个远端是发布线，只接受 main 与 tag——开发历史不该出现在这里。" >&2
+            echo "✗ 拒绝推送 ${remote_ref} 到发布仓库「${remote_name}」（${remote_url}）" >&2
+            echo "  这个仓库只接受 main 与 tag——开发历史不该出现在这里。" >&2
             echo "  存档请用：git push vault --all && git push vault --tags" >&2
-            echo "  确实要绕过：git push --no-verify" >&2
+            echo "  在自己的 fork 上推分支不受影响。确实要绕过：git push --no-verify" >&2
             status=1
             ;;
     esac

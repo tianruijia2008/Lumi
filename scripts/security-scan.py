@@ -366,7 +366,11 @@ def scan_hygiene(root: Path, files: list[str]) -> list[Finding]:
 
 
 # 文档类文件：链接都要有效（新增一份文档就加进来，别让它变成第二个漂移源）。
-DOC_FILES = ("STRUCTURE.md", "README.md", "TECHSHEET.md", "AGENTS.md", "CONTRIBUTING.md")
+DOC_FILES = ("STRUCTURE.md", "README.md", "TECHSHEET.md", "AGENTS.md",
+             "CONTRIBUTING.md", "CLAUDE.md")
+# Claude Code 的记忆文件用 `@路径` 导入别的文件（如 CLAUDE.md -> @AGENTS.md）。
+# 这种导入没有 markdown 链接语法，所以要单独查目标是否存在。
+AT_IMPORT = re.compile(r"^@([A-Za-z0-9_./\-]+\.md)\s*$")
 CENSUS_ROW = re.compile(r"^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|\s*([\d,]+)\s*\|")
 CENSUS_TOTAL = re.compile(r"^\|\s*\*\*合计\*\*\s*\|\s*\*\*(\d+)\*\*\s*\|\s*\*\*([\d,]+)\*\*\s*\|")
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
@@ -399,6 +403,10 @@ def scan_docs(root: Path) -> list[Finding]:
                 if not (root / clean).exists():
                     findings.append(Finding(doc, lineno, "docs/dead-link",
                                             f"链接目标不存在：{clean}"))
+            imported = AT_IMPORT.match(line.strip())
+            if imported and not (root / imported.group(1)).exists():
+                findings.append(Finding(doc, lineno, "docs/dead-import",
+                                        f"@ 导入的文件不存在：{imported.group(1)}"))
 
     # 2) 模块清单必须和真实文件数一致（防止文档悄悄过期）
     counts: dict[str, tuple[int, int]] = {}
