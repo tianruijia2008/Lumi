@@ -264,7 +264,7 @@ git commit --no-verify            # 确实需要时才绕过（CI 仍会拦）
 | 远端 | 地址 | 收什么 | 用途 |
 |---|---|---|---|
 | `origin` | `github.com/…/Lumi` | 只收 `main` 与 tag | 发布线（已压平：`main` 是一个初始提交 + 后续修改） |
-| `vault` | `github.com/…/Lumi-history`（私有） | 全都收 | 存档：`main` + `backup/pre-public`（未压平的开发历史）+ tag |
+| `vault` | `github.com/…/Lumi-history`（公开） | 全都收 | 存档：`main` + `backup/pre-public`（未压平的开发历史）+ tag |
 
 ```bash
 git push origin main                 # 发布
@@ -280,8 +280,11 @@ git push vault --tags                # 存档：所有标签
 `.githooks/pre-push` 把这件事从"记得别推错"变成机制，但**只约束发布仓库**（URL 含
 `tianruijia2008/Lumi`）：只允许 `main` 与 `refs/tags/*`，删除 `main` 也拒绝。
 存档仓库（URL 含 `Lumi-history`）与其它远端（fork、自建）一律放行——贡献者在自己的
-fork 上推特性分支必须照常可用。开发历史被推到公开仓库是无法真正撤回的（只能删仓库
-重开），所以这里对发布仓库宁可拦错。
+fork 上推特性分支必须照常可用。两条无关的历史一旦混进发布仓库就很难清干净（删分支
+容易，别人已经 fetch 走的收不回来），所以这里对发布仓库宁可拦错。
+
+存档仓库同样是公开的，钩子对它不设防：`git push vault --all` 会推本地**每一个**分支，
+推之前先 `git branch` 看一眼。
 
 发布标记：tag 打在 `main` 的当前提交上，版本号同时在 `manifest.json`、`Resources/Info.plist`、
 `Extensions/Safari/Info.plist` 三处，必须一致。
