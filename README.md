@@ -341,8 +341,7 @@ Easydict 卡死的根因是同步阻塞调用跑在主线程上。这里每一�
 ## 结构
 
 **完整的模块地图、两张可交互图（结构图 + 数据流图）、以及仓库守卫的说明，都在
-[`STRUCTURE.md`](STRUCTURE.md)**（图在 `docs/*.html`，双击就能打开）。给 AI 代理的
-约定在 [`AGENTS.md`](AGENTS.md)。下面只是源码分区的简表。
+[`STRUCTURE.md`](STRUCTURE.md)**（图在 `docs/*.html`，双击就能打开）。下面只是源码分区的简表。
 
 ```
 App/       应用入口、菜单栏、面板窗口控制器
